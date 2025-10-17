@@ -1,0 +1,18 @@
+[package]
+version = "0.1.0"
+name = "zktls-program"
+edition = "2021"
+
+[dependencies]
+alloy-sol-types = { workspace = true }
+sp1-zkvm = "5.0.8"
+
+serde_json = "1.0"
+anyhow = { version = "1.0.40", default-features = false }
+thiserror = "2.0.17"
+
+# zktls-att-verification = { git = "https://github.com/primus-labs/zktls-att-verification.git", rev = "db2a560" }
+zktls-att-verification = { git = "https://github.com/primus-labs/zktls-att-verification.git", branch = "network" }
+
+[patch.crates-io]
+ecdsa-core = { git = "https://github.com/brevis-network/signatures", package = "ecdsa", branch = "patch-v1.0.1" }

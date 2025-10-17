@@ -1,0 +1,183 @@
+// These two lines are necessary for the program to properly compile.
+//
+// Under the hood, we wrap your main function with some extra code so that it behaves properly
+// inside the zkVM.
+#![no_main]
+sp1_zkvm::entrypoint!(main);
+
+use anyhow::Result;
+use serde_json::json;
+use sp1_zkvm::io::commit;
+use std::collections::{HashMap, HashSet};
+use zktls_att_verification::attestation_data::verify_attestation_data;
+
+mod errors;
+use errors::{ZkErrorCode, ZktlsError};
+
+// const RISK_URL: &str = "https://papi.binance.com/papi/v1/um/positionRisk";
+// const BALANCE_URL: &str = "https://papi.binance.com/papi/v1/balance";
+const RISK_URL: &str = "https://exchange.unipay.dev/public/positionRisk";
+const BALANCE_URL: &str = "https://exchange.unipay.dev/public/balance";
+const STABLE_COINS: &[&str] = &[
+    "USDT", "USDC", "FDUSD", "TUSD", "USDE", "XUSD", "USD1", "BFUSD", "USDP", "DAI",
+];
+
+fn app_main() -> Result<(), ZktlsError> {
+    let attestation_data: String = sp1_zkvm::io::read();
+
+    //
+    // 0. Make attestation config
+    let v: serde_json::Value = serde_json::from_str(&attestation_data)
+        .map_err(|e| zkerr!(ZkErrorCode::ParseAttestationData, e.to_string()))?;
+    let attestor_addr = v
+        .get("public_data")
+        .and_then(|pd| pd.get(0))
+        .and_then(|item| item.get("attestor"))
+        .and_then(|a| a.as_str())
+        .ok_or_else(|| zkerr!(ZkErrorCode::GetAttestorAddressFail))?;
+    let attestion_confg = json!({
+        "attestor_addr": attestor_addr,
+        "url": [RISK_URL,BALANCE_URL ]
+    });
+    println!("attestion_confg {}", attestion_confg.to_string());
+    commit(&attestion_confg.to_string());
+
+    //
+    // 1. Verify
+    let (attestation_data, _, messages) = verify_attestation_data(&attestation_data, &attestion_confg.to_string())
+        .map_err(|e| zkerr!(ZkErrorCode::VerifyAttestation, e.to_string()))?;
+    // commit(&attestation_data.public_data);
+
+    //
+    // 2. Do some valid checks
+    // In the vast majority of cases, it is legal. Data is extracted while the inspection is conducted.
+    let msg_len = messages[0].len();
+    let requests = attestation_data.public_data[0].attestation.request.clone();
+    let requests_len = requests.len();
+    ensure_zk!(requests_len % 2 == 0, zkerr!(ZkErrorCode::InvalidRequestLength));
+    ensure_zk!(requests_len == msg_len, zkerr!(ZkErrorCode::InvalidMessagesLength));
+
+    let mut i = 0;
+    let mut um_paths = vec![];
+    um_paths.push("$.[*].symbol");
+    um_paths.push("$.[*].entryPrice");
+
+    let mut bal_paths = vec![];
+    bal_paths.push("$.[*].asset");
+    bal_paths.push("$.[*].totalWalletBalance");
+    bal_paths.push("$.[*].umUnrealizedPNL");
+
+    let mut asset_bals = HashMap::new();
+    let mut um_prices = vec![];
+    // strict order: um1 bal1 um2 bal2 ...
+    for request in requests {
+        // println!("request.url {}", request.url);
+
+        let response_resolves = attestation_data.public_data[0].attestation.responseResolves.clone();
+        let responses = &response_resolves[i].oneUrlResponseResolve;
+
+        if request.url.starts_with(RISK_URL) {
+            ensure_zk!(i % 2 == 0, zkerr!(ZkErrorCode::InvalidRequestOrder));
+            ensure_zk!(
+                responses.len() == um_paths.len(),
+                zkerr!(ZkErrorCode::InvalidResponseLength)
+            );
+
+            let json_value = messages[0][i]
+                .get_json_values(&um_paths)
+                .map_err(|e| zkerr!(ZkErrorCode::GetJsonValueFail, e.to_string()))?;
+            // println!("um json value:{:?}", json_value);
+
+            ensure_zk!(
+                json_value.len() % um_paths.len() == 0,
+                zkerr!(ZkErrorCode::InvalidJsonValueSize)
+            );
+
+            // Collects UM (asset => entryPrice) info
+            // println!("um json value.len():{:?}", json_value.len());
+            let mut prices = vec![];
+            let size = json_value.len() / um_paths.len();
+            for j in 0..size {
+                // println!("j {:#?}", j);
+                let asset = json_value[j].trim_matches('"').to_ascii_uppercase();
+                let price = json_value[size + j].trim_matches('"').to_string();
+                let v = format!("{}:{}", asset, price);
+                // println!("v {:#?}", v);
+                prices.push(v);
+            }
+            prices.sort();
+            let um_price = prices.join(",");
+            um_prices.push(um_price);
+            // println!("um_prices {:#?}", um_prices);
+        } else if request.url.starts_with(BALANCE_URL) {
+            ensure_zk!(
+                responses.len() == bal_paths.len(),
+                zkerr!(ZkErrorCode::InvalidResponseLength)
+            );
+
+            let json_value = messages[0][i]
+                .get_json_values(&bal_paths)
+                .map_err(|e| zkerr!(ZkErrorCode::GetJsonValueFail, e.to_string()))?;
+            // println!("bal json value:{:?}", json_value);
+
+            ensure_zk!(
+                json_value.len() % bal_paths.len() == 0,
+                zkerr!(ZkErrorCode::InvalidJsonValueSize)
+            );
+
+            let size = json_value.len() / bal_paths.len();
+            for j in 0..size {
+                let asset = json_value[j].trim_matches('"').to_ascii_uppercase();
+                let bal: f64 = json_value[size + j].trim_matches('"').parse().unwrap_or(0.0);
+                let pnl: f64 = json_value[size * 2 + j].trim_matches('"').parse().unwrap_or(0.0);
+                *asset_bals.entry(asset.to_string()).or_insert(0.0) += bal + pnl;
+                // println!("bal {:#?}", asset_bals);
+            }
+        } else {
+            return Err(zkerr!(ZkErrorCode::InvalidRequestUrl));
+        }
+
+        i += 1;
+    }
+
+    println!("um_prices {:#?}", um_prices);
+    println!("asset_bals {:#?}", asset_bals);
+
+    // Is the account duplicate?
+    let mut seen = HashSet::new();
+    ensure_zk!(
+        !um_prices.iter().any(|x| !seen.insert(x)),
+        zkerr!(ZkErrorCode::DuplicateAccount)
+    );
+
+    // Summary by Category
+    println!("----- Summary by Category -----");
+    let mut stablecoin_sum = 0.0;
+    for (k, v) in asset_bals {
+        if STABLE_COINS.contains(&k.as_str()) {
+            stablecoin_sum += v;
+        } else {
+            println!("{} {}", k, v);
+            commit(&k);
+            commit(&v);
+        }
+    }
+    println!("STABLECOIN {}", stablecoin_sum);
+    commit(&"STABLECOIN");
+    commit(&stablecoin_sum);
+
+    commit(&STABLE_COINS);
+
+    Ok(())
+}
+
+pub fn main() {
+    let mut code: i16 = 0;
+    if let Err(e) = app_main() {
+        println!("Error: {} {}", e.icode(), e.msg());
+        code = e.icode();
+    } else {
+        println!("OK");
+    }
+    commit(&code);
+}
