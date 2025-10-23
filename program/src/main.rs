@@ -6,6 +6,7 @@
 sp1_zkvm::entrypoint!(main);
 
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sp1_zkvm::io::commit;
 use std::collections::{HashMap, HashSet};
@@ -22,7 +23,16 @@ const STABLE_COINS: &[&str] = &[
     "USDT", "USDC", "FDUSD", "TUSD", "USDE", "XUSD", "USD1", "BFUSD", "USDP", "DAI",
 ];
 
-fn app_main() -> Result<(), ZktlsError> {
+#[derive(Serialize, Deserialize, Default)]
+struct PublicValueStruct {
+    attestor: String,
+    base_urls: Vec<String>,
+    asset_balance: HashMap<String, f64>,
+    timestamp: u128,
+    status: i16,
+}
+
+fn app_main(pv: &mut PublicValueStruct) -> Result<(), ZktlsError> {
     let attestation_data: String = sp1_zkvm::io::read();
 
     //
@@ -37,16 +47,16 @@ fn app_main() -> Result<(), ZktlsError> {
         .ok_or_else(|| zkerr!(ZkErrorCode::GetAttestorAddressFail))?;
     let attestion_confg = json!({
         "attestor_addr": attestor_addr,
-        "url": [RISK_URL,BALANCE_URL ]
+        "url": [RISK_URL, BALANCE_URL]
     });
-    println!("attestion_confg {}", attestion_confg.to_string());
-    commit(&attestion_confg.to_string());
+    pv.attestor = attestor_addr.to_string();
+    pv.base_urls.push(RISK_URL.to_string());
+    pv.base_urls.push(BALANCE_URL.to_string());
 
     //
     // 1. Verify
     let (attestation_data, _, messages) = verify_attestation_data(&attestation_data, &attestion_confg.to_string())
         .map_err(|e| zkerr!(ZkErrorCode::VerifyAttestation, e.to_string()))?;
-    // commit(&attestation_data.public_data);
 
     //
     // 2. Do some valid checks
@@ -67,26 +77,29 @@ fn app_main() -> Result<(), ZktlsError> {
     bal_paths.push("$.[*].totalWalletBalance");
     bal_paths.push("$.[*].umUnrealizedPNL");
 
+    pv.timestamp = u128::MAX;
     let mut asset_bals = HashMap::new();
     let mut um_prices = vec![];
     // strict order: um1 bal1 um2 bal2 ...
     for request in requests {
-        // println!("request.url {}", request.url);
+        let ts = request
+            .url
+            .split("timestamp=")
+            .nth(1)
+            .and_then(|s| s.split('&').next())
+            .filter(|s| !s.is_empty())
+            .ok_or(zkerr!(ZkErrorCode::CannotFoundTimestamp))?
+            .parse::<u128>()
+            .map_err(|_| zkerr!(ZkErrorCode::ParseTimestampFailed))?;
+        pv.timestamp = pv.timestamp.min(ts);
 
-        let response_resolves = attestation_data.public_data[0].attestation.responseResolves.clone();
-        let responses = &response_resolves[i].oneUrlResponseResolve;
-
+        // check url and get assets' balance
         if request.url.starts_with(RISK_URL) {
             ensure_zk!(i % 2 == 0, zkerr!(ZkErrorCode::InvalidRequestOrder));
-            ensure_zk!(
-                responses.len() == um_paths.len(),
-                zkerr!(ZkErrorCode::InvalidResponseLength)
-            );
 
             let json_value = messages[0][i]
                 .get_json_values(&um_paths)
                 .map_err(|e| zkerr!(ZkErrorCode::GetJsonValueFail, e.to_string()))?;
-            // println!("um json value:{:?}", json_value);
 
             ensure_zk!(
                 json_value.len() % um_paths.len() == 0,
@@ -94,31 +107,21 @@ fn app_main() -> Result<(), ZktlsError> {
             );
 
             // Collects UM (asset => entryPrice) info
-            // println!("um json value.len():{:?}", json_value.len());
             let mut prices = vec![];
             let size = json_value.len() / um_paths.len();
             for j in 0..size {
-                // println!("j {:#?}", j);
                 let asset = json_value[j].trim_matches('"').to_ascii_uppercase();
                 let price = json_value[size + j].trim_matches('"').to_string();
                 let v = format!("{}:{}", asset, price);
-                // println!("v {:#?}", v);
                 prices.push(v);
             }
             prices.sort();
             let um_price = prices.join(",");
             um_prices.push(um_price);
-            // println!("um_prices {:#?}", um_prices);
         } else if request.url.starts_with(BALANCE_URL) {
-            ensure_zk!(
-                responses.len() == bal_paths.len(),
-                zkerr!(ZkErrorCode::InvalidResponseLength)
-            );
-
             let json_value = messages[0][i]
                 .get_json_values(&bal_paths)
                 .map_err(|e| zkerr!(ZkErrorCode::GetJsonValueFail, e.to_string()))?;
-            // println!("bal json value:{:?}", json_value);
 
             ensure_zk!(
                 json_value.len() % bal_paths.len() == 0,
@@ -131,7 +134,6 @@ fn app_main() -> Result<(), ZktlsError> {
                 let bal: f64 = json_value[size + j].trim_matches('"').parse().unwrap_or(0.0);
                 let pnl: f64 = json_value[size * 2 + j].trim_matches('"').parse().unwrap_or(0.0);
                 *asset_bals.entry(asset.to_string()).or_insert(0.0) += bal + pnl;
-                // println!("bal {:#?}", asset_bals);
             }
         } else {
             return Err(zkerr!(ZkErrorCode::InvalidRequestUrl));
@@ -139,9 +141,6 @@ fn app_main() -> Result<(), ZktlsError> {
 
         i += 1;
     }
-
-    println!("um_prices {:#?}", um_prices);
-    println!("asset_bals {:#?}", asset_bals);
 
     // Is the account duplicate?
     let mut seen = HashSet::new();
@@ -151,33 +150,26 @@ fn app_main() -> Result<(), ZktlsError> {
     );
 
     // Summary by Category
-    println!("----- Summary by Category -----");
     let mut stablecoin_sum = 0.0;
     for (k, v) in asset_bals {
         if STABLE_COINS.contains(&k.as_str()) {
             stablecoin_sum += v;
         } else {
-            println!("{} {}", k, v);
-            commit(&k);
-            commit(&v);
+            pv.asset_balance.insert(k, v);
         }
     }
-    println!("STABLECOIN {}", stablecoin_sum);
-    commit(&"STABLECOIN");
-    commit(&stablecoin_sum);
-
-    commit(&STABLE_COINS);
+    pv.asset_balance.insert("STABLECOIN".to_string(), stablecoin_sum);
 
     Ok(())
 }
 
 pub fn main() {
-    let mut code: i16 = 0;
-    if let Err(e) = app_main() {
+    let mut pv = PublicValueStruct::default();
+    if let Err(e) = app_main(&mut pv) {
         println!("Error: {} {}", e.icode(), e.msg());
-        code = e.icode();
+        pv.status = e.icode();
     } else {
         println!("OK");
     }
-    commit(&code);
+    commit(&pv);
 }

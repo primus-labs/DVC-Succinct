@@ -48,3 +48,15 @@ cp .env.example .env
 
 Then, set the `SP1_PROVER` environment variable to `network` and set the `NETWORK_PRIVATE_KEY` environment variable to your whitelisted private key.
 
+
+## Localtest
+
+```sh
+cd script
+RUST_LOG=info cargo build --release
+
+cd ..
+RUST_LOG=info ./target/release/zktls --execute \
+  --input ./script/data/hash_attestation_data.json \
+  --output-dir proof_output
+```
