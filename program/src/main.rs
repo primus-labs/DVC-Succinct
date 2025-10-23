@@ -23,7 +23,7 @@ const STABLE_COINS: &[&str] = &[
     "USDT", "USDC", "FDUSD", "TUSD", "USDE", "XUSD", "USD1", "BFUSD", "USDP", "DAI",
 ];
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 struct PublicValueStruct {
     attestor: String,
     base_urls: Vec<String>,
@@ -172,4 +172,5 @@ pub fn main() {
         println!("OK");
     }
     commit(&pv);
+    println!("{:#?}", pv);
 }
