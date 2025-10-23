@@ -11,7 +11,7 @@
 //! ```
 
 use clap::Parser;
-use sp1_sdk::{include_elf, network::NetworkMode, Prover, ProverClient, SP1Stdin};
+use sp1_sdk::{include_elf, network::FulfillmentStrategy, Prover, ProverClient, SP1Stdin};
 use std::env;
 use std::fs;
 use std::time::{Duration, Instant};
@@ -71,16 +71,23 @@ async fn main() {
         let pk;
         let vk;
         let proof;
+        let _ = fs::create_dir_all(&args.output_dir).unwrap();
         if env::var("SP1_PROVER").as_deref() == Ok("network") {
             // Request a proof asynchronously and get the proof ID
-            let network_prover = ProverClient::builder().network_for(NetworkMode::Mainnet).build();
+            let network_prover = ProverClient::builder().network().private().build();
             (pk, vk) = network_prover.setup(ZKTLS_ELF);
             let proof_id = network_prover
                 .prove(&pk, &stdin)
-                .groth16()
+                .plonk()
+                .timeout(Duration::from_secs(600))
+                .strategy(FulfillmentStrategy::Reserved)
                 .request_async()
                 .await
                 .unwrap();
+
+            let proof_id_json = serde_json::to_string(&proof_id).expect("failed to serialize proof id");
+            let proof_id_json_path = format!("{}/proof_id.json", args.output_dir);
+            std::fs::write(proof_id_json_path, proof_id_json).expect("failed to save proof id");
 
             // Poll for the status of the proof
             let timeout_duration = Duration::from_secs(600); // 10 mins
@@ -120,8 +127,6 @@ async fn main() {
         // println!("public_values: {}", proof.public_values.raw());
 
         // Save the proof and verifying key
-        let _ = fs::create_dir_all(&args.output_dir).unwrap();
-
         let proof_path = format!("{}/proof.bin", args.output_dir);
         proof.save(proof_path).expect("failed to save proof");
 
