@@ -1,0 +1,104 @@
+{
+  "verification_type": "HASH_COMPARSION",
+  "public_data": [
+    {
+      "attestation": {
+        "recipient": "0x810b7bacEfD5ba495bB688bbFD2501C904036AB7",
+        "request": [
+          {
+            "url": "https://exchange.unipay.dev/public/positionRisk",
+            "header": "",
+            "method": "GET",
+            "body": ""
+          },
+          {
+            "url": "https://exchange.unipay.dev/public/balance",
+            "header": "",
+            "method": "GET",
+            "body": ""
+          },
+          {
+            "url": "https://exchange.unipay.dev/public/positionRisk",
+            "header": "",
+            "method": "GET",
+            "body": ""
+          },
+          {
+            "url": "https://exchange.unipay.dev/public/balance",
+            "header": "",
+            "method": "GET",
+            "body": ""
+          }
+        ],
+        "responseResolves": [
+          {
+            "oneUrlResponseResolve": [
+              {
+                "keyName": "hb-risk",
+                "parseType": "",
+                "parsePath": "$"
+              }
+            ]
+          },
+          {
+            "oneUrlResponseResolve": [
+              {
+                "keyName": "hb-balance",
+                "parseType": "",
+                "parsePath": "$"
+              }
+            ]
+          },
+          {
+            "oneUrlResponseResolve": [
+              {
+                "keyName": "s1mk4-risk",
+                "parseType": "",
+                "parsePath": "$"
+              }
+            ]
+          },
+          {
+            "oneUrlResponseResolve": [
+              {
+                "keyName": "s1mk4-balance",
+                "parseType": "",
+                "parsePath": "$"
+              }
+            ]
+          }
+        ],
+        "data": "{\"hb-balance\":\"7b7ad4dbca48c4f75e15aa4cdd1c3853e23dd50c5a6307eef997adad4d8c8874\",\"hb-balance.count\":\"1\",\"hb-risk\":\"4be3d4ababd11567d0e4035b113c878e6a8edad993752b10677648beffc86467\",\"hb-risk.count\":\"1\",\"s1mk4-balance\":\"07e4cd5161736c36e63f3f1d2eb0af405fd02a16f1e14363536cb51762a328ed\",\"s1mk4-balance.count\":\"1\",\"s1mk4-risk\":\"aeb918d2fe5bf1a09ac3aed05d46f4f1f46767e476140529d8da2eec0385ad31\",\"s1mk4-risk.count\":\"1\",\"SHA256($)\":\"07e4cd5161736c36e63f3f1d2eb0af405fd02a16f1e14363536cb51762a328ed\"}",
+        "attConditions": "[{\"op\":\"SHA256\",\"field\":\"$\"},{\"op\":\"SHA256\",\"field\":\"$\"},{\"op\":\"SHA256\",\"field\":\"$\"},{\"op\":\"SHA256\",\"field\":\"$\"}]",
+        "timestamp": 1761105700726,
+        "additionParams": "{\"algorithmType\":\"mpctls\"}"
+      },
+      "attestor": "0x369692323adad86b76bab5390f8cd45f85e7c003",
+      "signature": "0xcb658f2676810b1e345ed81bde8b4e44ad142e2c9ecab1b3585b4ecc8487ddf3227fdf85f53d8fdc1762c3e97863c21383f35309077ceb9358c7adcf183659e81c",
+      "reportTxHash": "0x8dac2ec9efdfce00826d1d0fd2eb9a5caf1173651db1e92a40b9bad7e461e1b0",
+      "taskId": "0xa28a1ba6c7b7065964c3ecad5c454d8e74145168cebc63b8af9680c5074294b4",
+      "attestationTime": 42579,
+      "attestorUrl": "3b5e4f6ca1ab51d28c4db7d39ba16a96d117e453-18080.dstack-base-prod9.phala.network"
+    }
+  ],
+  "private_data": {
+    "plain_json_response": [
+      {
+        "id": "hb-risk",
+        "content": "[{\"symbol\":\"SOLUSDT\",\"positionAmt\":\"-326.7\",\"entryPrice\":\"192.2847533142\",\"markPrice\":\"185.33\",\"unrealizedProfit\":\"2272.11790775\",\"liquidationPrice\":\"376.8003638\",\"leverage\":\"20\",\"maxNotionalValue\":\"8000000.0\",\"positionSide\":\"BOTH\",\"initialMargin\":\"\",\"maintMargin\":\"\",\"positionInitialMargin\":\"\",\"openOrderInitialMargin\":\"\",\"notional\":\"-60547.311\",\"bidNotional\":\"\",\"askNotional\":\"\",\"updateTime\":1761105168334},{\"symbol\":\"BTCUSDT\",\"positionAmt\":\"-0.151\",\"entryPrice\":\"111147.4779107\",\"markPrice\":\"108169.9\",\"unrealizedProfit\":\"449.61426452\",\"liquidationPrice\":\"523513.50050532\",\"leverage\":\"20\",\"maxNotionalValue\":\"100000000\",\"positionSide\":\"BOTH\",\"initialMargin\":\"\",\"maintMargin\":\"\",\"positionInitialMargin\":\"\",\"openOrderInitialMargin\":\"\",\"notional\":\"-16333.6549\",\"bidNotional\":\"\",\"askNotional\":\"\",\"updateTime\":1761095408684},{\"symbol\":\"ETHUSDT\",\"positionAmt\":\"-2.866\",\"entryPrice\":\"3982.457106687\",\"markPrice\":\"3858.71\",\"unrealizedProfit\":\"354.65920776\",\"liquidationPrice\":\"25741.78176424\",\"leverage\":\"20\",\"maxNotionalValue\":\"65000000\",\"positionSide\":\"BOTH\",\"initialMargin\":\"\",\"maintMargin\":\"\",\"positionInitialMargin\":\"\",\"openOrderInitialMargin\":\"\",\"notional\":\"-11059.06286\",\"bidNotional\":\"\",\"askNotional\":\"\",\"updateTime\":1761105235881}]"
+      },
+      {
+        "id": "hb-balance",
+        "content": "[{\"asset\":\"BFUSD\",\"totalWalletBalance\":\"31761.0\",\"crossMarginAsset\":\"31761.0\",\"crossMarginBorrowed\":\"0.0\",\"crossMarginFree\":\"31761.0\",\"crossMarginInterest\":\"0.0\",\"crossMarginLocked\":\"0.0\",\"umWalletBalance\":\"0.0\",\"umUnrealizedPNL\":\"0.0\",\"cmWalletBalance\":\"0.0\",\"cmUnrealizedPNL\":\"0.0\",\"updateTime\":1761105337297,\"negativeBalance\":\"0.0\"},{\"asset\":\"BNB\",\"totalWalletBalance\":\"0.29993884\",\"crossMarginAsset\":\"0.18801075\",\"crossMarginBorrowed\":\"0.0\",\"crossMarginFree\":\"0.18801075\",\"crossMarginInterest\":\"0.0\",\"crossMarginLocked\":\"0.0\",\"umWalletBalance\":\"0.11192809\",\"umUnrealizedPNL\":\"0.0\",\"cmWalletBalance\":\"0.0\",\"cmUnrealizedPNL\":\"0.0\",\"updateTime\":1761105337297,\"negativeBalance\":\"0.0\"},{\"asset\":\"USDT\",\"totalWalletBalance\":\"7181.59534402\",\"crossMarginAsset\":\"7181.59534402\",\"crossMarginBorrowed\":\"200.50136\",\"crossMarginFree\":\"7181.59534402\",\"crossMarginInterest\":\"18.31344858\",\"crossMarginLocked\":\"0.0\",\"umWalletBalance\":\"0.0\",\"umUnrealizedPNL\":\"3084.01446003\",\"cmWalletBalance\":\"0.0\",\"cmUnrealizedPNL\":\"0.0\",\"updateTime\":1761105337297,\"negativeBalance\":\"0.0\"},{\"asset\":\"USDC\",\"totalWalletBalance\":\"21382.45019201\",\"crossMarginAsset\":\"21382.45019201\",\"crossMarginBorrowed\":\"0.0\",\"crossMarginFree\":\"21382.45019201\",\"crossMarginInterest\":\"0.0\",\"crossMarginLocked\":\"0.0\",\"umWalletBalance\":\"0.0\",\"umUnrealizedPNL\":\"0.0\",\"cmWalletBalance\":\"0.0\",\"cmUnrealizedPNL\":\"0.0\",\"updateTime\":1761105337297,\"negativeBalance\":\"0.0\"}]"
+      },
+      {
+        "id": "s1mk4-risk",
+        "content": "[{\"symbol\":\"BTCUSDT\",\"positionAmt\":\"-0.306\",\"entryPrice\":\"112405.1809504\",\"markPrice\":\"108169.9\",\"unrealizedProfit\":\"1295.99597082\",\"liquidationPrice\":\"411530.06721786\",\"leverage\":\"10\",\"maxNotionalValue\":\"230000000\",\"positionSide\":\"SHORT\",\"initialMargin\":\"\",\"maintMargin\":\"\",\"positionInitialMargin\":\"\",\"openOrderInitialMargin\":\"\",\"notional\":\"-33099.9894\",\"bidNotional\":\"\",\"askNotional\":\"\",\"updateTime\":1761085947301},{\"symbol\":\"ETHUSDT\",\"positionAmt\":\"-5.729\",\"entryPrice\":\"4006.669494242\",\"markPrice\":\"3858.33\",\"unrealizedProfit\":\"849.83696251\",\"liquidationPrice\":\"20061.54367929\",\"leverage\":\"10\",\"maxNotionalValue\":\"150000000\",\"positionSide\":\"SHORT\",\"initialMargin\":\"\",\"maintMargin\":\"\",\"positionInitialMargin\":\"\",\"openOrderInitialMargin\":\"\",\"notional\":\"-22104.37257\",\"bidNotional\":\"\",\"askNotional\":\"\",\"updateTime\":1761102684814},{\"symbol\":\"SOLUSDT\",\"positionAmt\":\"-655.8\",\"entryPrice\":\"196.7951168448\",\"markPrice\":\"185.31596189\",\"unrealizedProfit\":\"7528.02981936\",\"liquidationPrice\":\"326.49648784\",\"leverage\":\"10\",\"maxNotionalValue\":\"40000000\",\"positionSide\":\"SHORT\",\"initialMargin\":\"\",\"maintMargin\":\"\",\"positionInitialMargin\":\"\",\"openOrderInitialMargin\":\"\",\"notional\":\"-121530.20780746\",\"bidNotional\":\"\",\"askNotional\":\"\",\"updateTime\":1761098728922}]"
+      },
+      {
+        "id": "s1mk4-balance",
+        "content": "[{\"asset\":\"BTC\",\"totalWalletBalance\":\"0.93\",\"crossMarginAsset\":\"0.93\",\"crossMarginBorrowed\":\"0.0\",\"crossMarginFree\":\"0.93\",\"crossMarginInterest\":\"0.0\",\"crossMarginLocked\":\"0.0\",\"umWalletBalance\":\"0.0\",\"umUnrealizedPNL\":\"0.0\",\"cmWalletBalance\":\"0.0\",\"cmUnrealizedPNL\":\"0.0\",\"updateTime\":1758417858719,\"negativeBalance\":\"0.0\"},{\"asset\":\"USDT\",\"totalWalletBalance\":\"-11066.75731119\",\"crossMarginAsset\":\"0.0\",\"crossMarginBorrowed\":\"0.0\",\"crossMarginFree\":\"0.0\",\"crossMarginInterest\":\"21.8633667\",\"crossMarginLocked\":\"0.0\",\"umWalletBalance\":\"-11066.75731119\",\"umUnrealizedPNL\":\"9669.03754015\",\"cmWalletBalance\":\"0.0\",\"cmUnrealizedPNL\":\"0.0\",\"updateTime\":1761102684814,\"negativeBalance\":\"-11066.75731119\"}]"
+      }
+    ]
+  }
+}
