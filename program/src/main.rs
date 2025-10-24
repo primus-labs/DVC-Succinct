@@ -6,33 +6,23 @@
 sp1_zkvm::entrypoint!(main);
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sp1_zkvm::io::commit;
 use std::collections::{HashMap, HashSet};
 use zktls_att_verification::attestation_data::verify_attestation_data;
+use zktls_lib::PublicValuesStruct;
 
 mod errors;
 use errors::{ZkErrorCode, ZktlsError};
 
-// const RISK_URL: &str = "https://papi.binance.com/papi/v1/um/positionRisk";
-// const BALANCE_URL: &str = "https://papi.binance.com/papi/v1/balance";
 const RISK_URL: &str = "https://exchange.unipay.dev/public/positionRisk";
 const BALANCE_URL: &str = "https://exchange.unipay.dev/public/balance";
 const STABLE_COINS: &[&str] = &[
     "USDT", "USDC", "FDUSD", "TUSD", "USDE", "XUSD", "USD1", "BFUSD", "USDP", "DAI",
 ];
 
-#[derive(Serialize, Deserialize, Default, Debug)]
-struct PublicValueStruct {
-    attestor: String,
-    base_urls: Vec<String>,
-    asset_balance: HashMap<String, f64>,
-    timestamp: u128,
-    status: i16,
-}
 
-fn app_main(pv: &mut PublicValueStruct) -> Result<(), ZktlsError> {
+fn app_main(pv: &mut PublicValuesStruct) -> Result<(), ZktlsError> {
     let attestation_data: String = sp1_zkvm::io::read();
 
     //
@@ -77,21 +67,21 @@ fn app_main(pv: &mut PublicValueStruct) -> Result<(), ZktlsError> {
     bal_paths.push("$.[*].totalWalletBalance");
     bal_paths.push("$.[*].umUnrealizedPNL");
 
-    pv.timestamp = u128::MAX;
+    // pv.timestamp = u128::MAX;
     let mut asset_bals = HashMap::new();
     let mut um_prices = vec![];
     // strict order: um1 bal1 um2 bal2 ...
     for request in requests {
-        let ts = request
-            .url
-            .split("timestamp=")
-            .nth(1)
-            .and_then(|s| s.split('&').next())
-            .filter(|s| !s.is_empty())
-            .ok_or(zkerr!(ZkErrorCode::CannotFoundTimestamp))?
-            .parse::<u128>()
-            .map_err(|_| zkerr!(ZkErrorCode::ParseTimestampFailed))?;
-        pv.timestamp = pv.timestamp.min(ts);
+        // let ts = request
+        //     .url
+        //     .split("timestamp=")
+        //     .nth(1)
+        //     .and_then(|s| s.split('&').next())
+        //     .filter(|s| !s.is_empty())
+        //     .ok_or(zkerr!(ZkErrorCode::CannotFoundTimestamp))?
+        //     .parse::<u128>()
+        //     .map_err(|_| zkerr!(ZkErrorCode::ParseTimestampFailed))?;
+        // pv.timestamp = pv.timestamp.min(ts);
 
         // check url and get assets' balance
         if request.url.starts_with(RISK_URL) {
@@ -164,7 +154,7 @@ fn app_main(pv: &mut PublicValueStruct) -> Result<(), ZktlsError> {
 }
 
 pub fn main() {
-    let mut pv = PublicValueStruct::default();
+    let mut pv = PublicValuesStruct::default();
     if let Err(e) = app_main(&mut pv) {
         println!("Error: {} {}", e.icode(), e.msg());
         pv.status = e.icode();
@@ -172,5 +162,4 @@ pub fn main() {
         println!("OK");
     }
     commit(&pv);
-    println!("{:#?}", pv);
 }
