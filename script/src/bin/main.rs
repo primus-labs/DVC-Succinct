@@ -16,6 +16,7 @@ use std::env;
 use std::fs;
 use std::time::{Duration, Instant};
 use tokio;
+use zktls_lib::{PublicValuesStruct, SP1ZktlsProofFixture};
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
 pub const ZKTLS_ELF: &[u8] = include_elf!("zktls-program");
@@ -64,30 +65,37 @@ async fn main() {
         let (public_values, report) = client.execute(ZKTLS_ELF, &stdin).run().unwrap();
         println!("Program executed successfully.");
 
-        // Record the number of cycles executed.
         println!("public_values: {}", public_values.raw());
+
+        // let bytes = hex::decode(public_values.raw().trim_start_matches("0x")).unwrap();
+        let value: PublicValuesStruct = bincode::deserialize(public_values.as_slice()).unwrap();
+        println!("public_values:\n{:#?}", value);
+        let value_json = serde_json::to_string(&value).expect("failed to serialize public values");
+        println!("public_values(json):\n{}", value_json);
+
+        // Record the number of cycles executed.
         println!("Number of cycles: {}", report.total_instruction_count());
     } else {
         let pk;
         let vk;
         let proof;
+        let mut proof_fixture = SP1ZktlsProofFixture::default();
         let _ = fs::create_dir_all(&args.output_dir).unwrap();
+
         if env::var("SP1_PROVER").as_deref() == Ok("network") {
             // Request a proof asynchronously and get the proof ID
             let network_prover = ProverClient::builder().network().private().build();
             (pk, vk) = network_prover.setup(ZKTLS_ELF);
             let proof_id = network_prover
                 .prove(&pk, &stdin)
-                .plonk()
+                .groth16()
                 .timeout(Duration::from_secs(600))
                 .strategy(FulfillmentStrategy::Reserved)
                 .request_async()
                 .await
                 .unwrap();
 
-            let proof_id_json = serde_json::to_string(&proof_id).expect("failed to serialize proof id");
-            let proof_id_json_path = format!("{}/proof_id.json", args.output_dir);
-            std::fs::write(proof_id_json_path, proof_id_json).expect("failed to save proof id");
+            proof_fixture.proof_id = proof_id.to_string();
 
             // Poll for the status of the proof
             let timeout_duration = Duration::from_secs(600); // 10 mins
@@ -124,18 +132,20 @@ async fn main() {
             client.verify(&proof, &vk).expect("failed to verify proof");
             println!("Successfully verified proof!");
         }
-        // println!("public_values: {}", proof.public_values.raw());
+        let vk_bytes = bincode::serialize(&vk).expect("failed to serialize vk");
+        let proof_bytes = bincode::serialize(&proof).expect("failed to serialize proof");
+        proof_fixture.vk = format!("0x{}", hex::encode(vk_bytes));
+        proof_fixture.proof = format!("0x{}", hex::encode(proof_bytes));
 
-        // Save the proof and verifying key
-        let proof_path = format!("{}/proof.bin", args.output_dir);
-        proof.save(proof_path).expect("failed to save proof");
+        let public_values: PublicValuesStruct = bincode::deserialize(proof.public_values.as_slice()).unwrap();
+        proof_fixture.public_values = public_values;
 
-        let proof_json = serde_json::to_string(&proof).expect("failed to serialize proof");
-        let proof_json_path = format!("{}/proof.json", args.output_dir);
-        std::fs::write(proof_json_path, proof_json).expect("failed to save proof");
+        // println!("proof_fixture:\n{:#?}", proof_fixture);
+        let proof_fixture_json = serde_json::to_string(&proof_fixture).expect("failed to serialize proof fixture");
+        // println!("proof_fixture(json):\n{}", proof_fixture_json);
 
-        let vk_json = serde_json::to_string(&vk).expect("failed to serialize verifying key");
-        let vk_json_path = format!("{}/vk.json", args.output_dir);
-        std::fs::write(vk_json_path, vk_json).expect("failed to save verifying key");
+        let proof_json_path = format!("{}/proof_fixture.json", args.output_dir);
+        std::fs::write(proof_json_path, proof_fixture_json).expect("failed to save proof");
+        println!("Successfully saved proof!");
     }
 }

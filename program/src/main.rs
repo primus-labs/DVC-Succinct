@@ -6,11 +6,11 @@
 sp1_zkvm::entrypoint!(main);
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sp1_zkvm::io::commit;
 use std::collections::{HashMap, HashSet};
 use zktls_att_verification::attestation_data::verify_attestation_data;
+use zktls_lib::PublicValuesStruct;
 
 mod errors;
 use errors::{ZkErrorCode, ZktlsError};
@@ -21,16 +21,7 @@ const STABLE_COINS: &[&str] = &[
     "USDT", "USDC", "FDUSD", "TUSD", "USDE", "XUSD", "USD1", "BFUSD", "USDP", "DAI",
 ];
 
-#[derive(Serialize, Deserialize, Default)]
-struct PublicValueStruct {
-    attestor: String,
-    base_urls: Vec<String>,
-    asset_balance: HashMap<String, f64>,
-    timestamp: u128,
-    status: i16,
-}
-
-fn app_main(pv: &mut PublicValueStruct) -> Result<(), ZktlsError> {
+fn app_main(pv: &mut PublicValuesStruct) -> Result<(), ZktlsError> {
     let attestation_data: String = sp1_zkvm::io::read();
 
     //
@@ -162,7 +153,7 @@ fn app_main(pv: &mut PublicValueStruct) -> Result<(), ZktlsError> {
 }
 
 pub fn main() {
-    let mut pv = PublicValueStruct::default();
+    let mut pv = PublicValuesStruct::default();
     if let Err(e) = app_main(&mut pv) {
         println!("Error: {} {}", e.icode(), e.msg());
         pv.status = e.icode();
