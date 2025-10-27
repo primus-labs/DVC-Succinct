@@ -21,7 +21,6 @@ const STABLE_COINS: &[&str] = &[
     "USDT", "USDC", "FDUSD", "TUSD", "USDE", "XUSD", "USD1", "BFUSD", "USDP", "DAI",
 ];
 
-
 fn app_main(pv: &mut PublicValuesStruct) -> Result<(), ZktlsError> {
     let attestation_data: String = sp1_zkvm::io::read();
 
