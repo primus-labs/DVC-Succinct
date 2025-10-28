@@ -104,8 +104,8 @@ async fn main() {
                 if start.elapsed() > timeout_duration {
                     panic!("Get proof timeout after 10 mins");
                 }
-                let (status, proof_opt) = network_prover.get_proof_status(proof_id).await.unwrap();
-                println!("Current status: {:?}", status);
+                let (_status, proof_opt) = network_prover.get_proof_status(proof_id).await.unwrap();
+                // println!("Current status: {:?}", status);
 
                 if let Some(proof) = proof_opt {
                     println!("Proof ready!");
