@@ -57,6 +57,6 @@ RUST_LOG=info cargo build --release
 
 cd ..
 RUST_LOG=info ./target/release/zktls --execute \
-  --input ./prover/data/hash_attestation_data.json \
+  --input ./prover/data/binance_pha_attestation_data.json \
   --output-dir proof_output
 ```

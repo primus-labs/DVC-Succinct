@@ -7,16 +7,17 @@ mod phala;
 sp1_zkvm::entrypoint!(main);
 
 // use std::time::{SystemTime};
+use crate::binance::PositionInfo;
 use crate::{
     binance::{ApiResponse, PurchaseRecord, RedeemRecord},
     errors::{ZkErrorCode, ZktlsError},
     phala::{UserInfo, VmStatusMap},
 };
 use anyhow::{Context, Result};
-use sp1_zkvm::io::{commit, read};
 use serde_json::json;
-use zktls_att_verification::attestation_data::{AttestationData, verify_attestation_data};
-use crate::binance::PositionInfo;
+use sp1_zkvm::io::{commit, read};
+use zktls_att_verification::attestation_data::{verify_attestation_data, AttestationData};
+use zktls_lib::PublicValuesStruct;
 
 fn app_main() -> Result<()> {
     // let now_ts = SystemTime::now();
@@ -43,8 +44,7 @@ fn app_main() -> Result<()> {
         ]
     });
     // 1. Verify
-    let (attestation_data, _, _messages) =
-        verify_attestation_data(&attestation_data, &attestion_confg.to_string())?;
+    let (attestation_data, _, _messages) = verify_attestation_data(&attestation_data, &attestion_confg.to_string())?;
     println!("verify success");
     let source = extra_data_source(&attestation_data);
     println!("source is {source}");
@@ -53,7 +53,8 @@ fn app_main() -> Result<()> {
     } else if source.eq("binance") {
         return handle_binance(&attestation_data);
     } else {
-        ensure_zk!(true, zkerr!(ZkErrorCode::NotSupportSource));
+        let public_values_struct = PublicValuesStruct::default();
+        commit(&public_values_struct);
     }
     Ok(())
 }
@@ -80,18 +81,10 @@ fn extra_data_source(attestation_data: &AttestationData) -> &'static str {
 }
 
 fn handle_binance(attestation_data: &AttestationData) -> Result<()> {
-    let first_public = attestation_data
-        .public_data
-        .get(0)
-        .context("public_data is empty")?;
+    let first_public = attestation_data.public_data.get(0).context("public_data is empty")?;
     let now_ts = first_public.attestationTime;
-    let (
-        today_start,
-        yesterday_start,
-        yesterday_end,
-        day_before_yesterday_start,
-        day_before_yesterday_end,
-    ) = get_day_ranges(now_ts);
+    let (today_start, yesterday_start, yesterday_end, day_before_yesterday_start, day_before_yesterday_end) =
+        get_day_ranges(now_ts);
 
     let mut today_asset: f64 = 0.0;
 
@@ -126,25 +119,19 @@ fn handle_binance(attestation_data: &AttestationData) -> Result<()> {
                     if timestamp >= yesterday_start && timestamp < yesterday_end {
                         yesterday_buy_amount += buy_amount
                     }
-                    if timestamp >= day_before_yesterday_start
-                        && timestamp < day_before_yesterday_end
-                    {
+                    if timestamp >= day_before_yesterday_start && timestamp < day_before_yesterday_end {
                         day_before_yesterday_buy_amount += buy_amount
                     }
                 }
                 println!("{},today_buy_amount: {}", default_token, today_buy_amount);
-                println!(
-                    "{},yesterday_buy_amount:{}",
-                    default_token, yesterday_buy_amount
-                );
+                println!("{},yesterday_buy_amount:{}", default_token, yesterday_buy_amount);
                 println!(
                     "{},day_before_yesterday_buy_amount:{}",
                     default_token, day_before_yesterday_buy_amount
                 );
             }
             if response.id.eq("redemptionList") {
-                let redeem_rsp: ApiResponse<Vec<RedeemRecord>> =
-                    serde_json::from_str(response.content.as_str())?;
+                let redeem_rsp: ApiResponse<Vec<RedeemRecord>> = serde_json::from_str(response.content.as_str())?;
                 for red in redeem_rsp.data {
                     if !default_token.eq(&red.asset) {
                         continue;
@@ -159,27 +146,21 @@ fn handle_binance(attestation_data: &AttestationData) -> Result<()> {
                     if timestamp >= yesterday_start && timestamp < yesterday_end {
                         yesterday_sell_amount += sell_amount
                     }
-                    if timestamp >= day_before_yesterday_start
-                        && timestamp < day_before_yesterday_end
-                    {
+                    if timestamp >= day_before_yesterday_start && timestamp < day_before_yesterday_end {
                         day_before_yesterday_sell_amount += sell_amount
                     }
                 }
                 println!("{},today_sell_amount: {}", default_token, today_sell_amount);
-                println!(
-                    "{},yesterday_sell_amount:{}",
-                    default_token, yesterday_sell_amount
-                );
+                println!("{},yesterday_sell_amount:{}", default_token, yesterday_sell_amount);
                 println!(
                     "{},day_before_yesterday_sell_amount:{}",
                     default_token, day_before_yesterday_sell_amount
                 );
             }
             if response.id.eq("assetDetails") {
-                let asset_data_rsp: ApiResponse<Vec<PositionInfo>> =
-                    serde_json::from_str(response.content.as_str())?;
+                let asset_data_rsp: ApiResponse<Vec<PositionInfo>> = serde_json::from_str(response.content.as_str())?;
 
-                for asd in asset_data_rsp.data{
+                for asd in asset_data_rsp.data {
                     if user_id.is_empty() {
                         user_id = asd.user_id.clone()
                     }
@@ -194,22 +175,25 @@ fn handle_binance(attestation_data: &AttestationData) -> Result<()> {
     }
     // compute average amount of the past 3 days
     let yesterday_end_amount = today_asset - today_buy_amount + today_sell_amount;
-    let day_before_yesterday_end_amount =
-        yesterday_end_amount - yesterday_buy_amount + yesterday_sell_amount;
-    let two_day_before_yesterday_end_amount = day_before_yesterday_end_amount
-        - day_before_yesterday_buy_amount
-        + day_before_yesterday_sell_amount;
-    let average_past_3_days = (yesterday_end_amount
-        + day_before_yesterday_end_amount
-        + two_day_before_yesterday_end_amount)
-        / 3.0;
+    let day_before_yesterday_end_amount = yesterday_end_amount - yesterday_buy_amount + yesterday_sell_amount;
+    let two_day_before_yesterday_end_amount =
+        day_before_yesterday_end_amount - day_before_yesterday_buy_amount + day_before_yesterday_sell_amount;
+    let average_past_3_days =
+        (yesterday_end_amount + day_before_yesterday_end_amount + two_day_before_yesterday_end_amount) / 3.0;
     println!("user_id = {}", user_id);
     println!(
         "{} average amount in the past 3 days:{}",
         default_token, average_past_3_days
     );
-    commit(&user_id);
-    commit(&average_past_3_days);
+
+    let public_values_struct: PublicValuesStruct = PublicValuesStruct {
+        source: "binance".to_string(),
+        recipient: first_public.attestation.recipient.clone(),
+        phala_average_balance: average_past_3_days.clone(),
+        source_user: user_id,
+        meet_up_time: false,
+    };
+    commit(&public_values_struct);
 
     Ok(())
 }
@@ -223,17 +207,40 @@ fn handle_phala(attestation_data: &AttestationData) -> Result<()> {
             let content = response.content.as_str();
             if "userInfo".eq(id) {
                 let user_info: UserInfo = serde_json::from_str(content)?;
-                println!("userInfo: {:?}", user_info);
-                commit(&user_info.email);
             } else {
                 let vms: VmStatusMap = serde_json::from_str(content)?;
                 up_time_enough = check_all_vm_uptime(&vms);
             }
         }
 
-        ensure_zk!(up_time_enough, zkerr!(ZkErrorCode::UpTimeNotEnough));
+        // Get recipient from public_data
+        let first_public = attestation_data.public_data.get(0).context("public_data is empty")?;
+
+        // Get user email from userInfo response
+        let user_email = if let Some(responses) = attestation_data.private_data.plain_json_response.as_ref() {
+            responses
+                .iter()
+                .find(|r| r.id == "userInfo")
+                .and_then(|r| serde_json::from_str::<UserInfo>(r.content.as_str()).ok())
+                .map(|u| u.email)
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
+        println!("user_email: {}", user_email);
+
+        let public_values_struct = PublicValuesStruct {
+            source: "phala".to_string(),
+            recipient: first_public.attestation.recipient.clone(),
+            phala_average_balance: 0.0,
+            source_user: user_email,
+            meet_up_time: up_time_enough,
+        };
+        commit(&public_values_struct);
     } else {
-        ensure_zk!(true, zkerr!(ZkErrorCode::EmptyPlainResponse));
+        // Create empty PublicValuesStruct when no responses
+        let public_values_struct = PublicValuesStruct::default();
+        commit(&public_values_struct);
     }
     Ok(())
 }

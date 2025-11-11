@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct PublicValuesStruct {
-    pub attestor: String,
-    pub base_urls: Vec<String>,
-    pub asset_balance: HashMap<String, f64>,
-    pub timestamp: u128,
-    pub status: i16,
+    pub source: String,
+    pub recipient: String,
+    pub phala_average_balance: f64,
+    pub source_user: String,
+    pub meet_up_time: bool,
 }
+
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct SP1ZktlsProofFixture {

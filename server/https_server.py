@@ -117,10 +117,10 @@ class SimpleHTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
                 data = {"code": "0", "description": "free."}
                 self.end_200(data)
         elif self.path == "/zktls/prove":
-            if is_busy.value == 1:
-                data = {"code": "10002", "description": "Server is busy, please try later."}
-                self.end_200(data)
-                return
+            # if is_busy.value == 1:
+            #     data = {"code": "10002", "description": "Server is busy, please try later."}
+            #     self.end_200(data)
+            #     return
 
             # the body is json string
             attestationData = json.dumps(data["attestationData"], separators=(",", ":"), ensure_ascii=False)
