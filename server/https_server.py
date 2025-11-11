@@ -40,6 +40,7 @@ def run_command_succinct(requestid, attestationData):
             output_dir,
         ]
         print("[CMD]", cmd)
+        print(f"Start to execute requestid: {requestid}")
         result = subprocess.run(cmd, capture_output=True, text=True)
         # result = subprocess.run(cmd, capture_output=True, text=True, env=env)
         print("[OUTPUT]:", result.stdout)
@@ -128,10 +129,6 @@ class SimpleHTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
             existing_task = tasks.get(requestid)
             if isinstance(existing_task, dict) and existing_task.get("status") == "running":
                 data = {"code": "10004", "description": f"requestid {requestid} is running!"}
-                self.end_200(data)
-                return
-            if is_busy.value == 1:
-                data = {"code": "10002", "description": "Server is busy, please try later."}
                 self.end_200(data)
                 return
 
