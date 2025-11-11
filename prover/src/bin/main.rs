@@ -86,6 +86,7 @@ async fn main() {
         let _ = fs::create_dir_all(&args.output_dir).unwrap();
 
         if env::var("SP1_PROVER").as_deref() == Ok("network") {
+            println!("Using network prover");
             // Request a proof asynchronously and get the proof ID
             let network_prover = ProverClient::builder().network().private().build();
             (pk, vk) = network_prover.setup(ZKTLS_ELF);
@@ -154,6 +155,8 @@ async fn main() {
             network_prover.verify(&proof, &vk).expect("failed to verify proof");
             println!("Successfully verified proof!");
         } else {
+            println!("Using local prover");
+
             let client = ProverClient::from_env();
 
             // Setup the program for proving.
