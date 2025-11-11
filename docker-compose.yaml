@@ -1,0 +1,13 @@
+x-common-env: &service_env
+  SP1_PROVER: ${SP1_PROVER:-mock}
+  NETWORK_PRIVATE_KEY: ${NETWORK_PRIVATE_KEY}
+
+services:
+  events-phala-zkvm-server:
+    # build: .
+    image: pado/events-phala-zkvm-server:latest
+    container_name: events-phala-zkvm-server
+    ports:
+      - "38080:38080"
+    environment: *service_env
+    restart: always
