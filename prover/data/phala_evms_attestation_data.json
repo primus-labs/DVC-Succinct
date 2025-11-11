@@ -1,0 +1,66 @@
+{
+  "verification_type": "HASH_COMPARSION",
+  "public_data": [
+    {
+      "attestation": {
+        "recipient": "0x8F0D4188307496926d785fB00E08Ed772f3be890",
+        "request": [
+          {
+            "url": "https://cloud-api.phala.network/api/v1/auth/me?",
+            "header": "",
+            "method": "GET",
+            "body": ""
+          },
+          {
+            "url": "https://cloud.phala.network/api/status/batch?",
+            "header": "",
+            "method": "POST",
+            "body": "{\"vm_uuids\":[\"3c98d7e0-75ee-41f0-bf85-96580bc2d1f0\",\"5e860d64-ede3-4336-9e2c-af44621b461f\",\"e7d19dec-f01e-4990-b19b-2eb2c31bd31d\",\"9c977789-775c-476d-9a4f-17c2e4677b43\"]}"
+          }
+        ],
+        "responseResolves": [
+          {
+            "oneUrlResponseResolve": [
+              {
+                "keyName": "userInfo",
+                "parseType": "",
+                "parsePath": "{\"type\":\"FIELD_ARITHMETIC\",\"op\":\"SHA256\",\"field\":\"$\"}"
+              }
+            ]
+          },
+          {
+            "oneUrlResponseResolve": [
+              {
+                "keyName": "cvmList",
+                "parseType": "",
+                "parsePath": "{\"type\":\"FIELD_ARITHMETIC\",\"op\":\"SHA256\",\"field\":\"$\"}"
+              }
+            ]
+          }
+        ],
+        "data": "{\"cvmList\":\"7efac711d146580685d9e39512f84e33a68cdb3bf5da38e0a47839598f221433\",\"cvmList.count\":\"1\",\"userInfo\":\"332230bf319001e76c70f9cff80a06ef38e236f0d1bea0562d66da10c3e66e4c\",\"userInfo.count\":\"1\"}",
+        "attConditions": "[{\"op\":\"REVEAL_HEX_STRING\",\"field\":\"{\\\"type\\\":\\\"FIELD_ARITHMETIC\\\",\\\"op\\\":\\\"SHA256\\\",\\\"field\\\":\\\"$\\\"}\"},{\"op\":\"REVEAL_HEX_STRING\",\"field\":\"{\\\"type\\\":\\\"FIELD_ARITHMETIC\\\",\\\"op\\\":\\\"SHA256\\\",\\\"field\\\":\\\"$\\\"}\"}]",
+        "timestamp": 1762400293081,
+        "additionParams": "{\"algorithmType\":\"proxytls\"}"
+      },
+      "attestor": "0x0de886e31723e64aa72e51977b14475fb66a9f72",
+      "attestationTime": 123,
+      "signature": "0x8ec8517307c4a95a67e176edd1170c9c03f024ff11efcc8a3e901d1fd26348c77f70ee4a997faac3db563cd9283c5497a28241487c539e12cb7ee0f29a6c518d1b",
+      "reportTxHash": "0x9225c0285fe7f10e645aae332ba0a913932ac44297affd09186b51dad6f3cb45",
+      "taskId": "0x63f0444a260197f32ea182167d81b523bddfe6f3cd18bb20276f1dacc3bbdb3b",
+      "attestorUrl": "3b5e4f6ca1ab51d28c4db7d39ba16a96d117e453-18080.dstack-base-prod9.phala.network"
+    }
+  ],
+  "private_data": {
+    "plain_json_response": [
+      {
+        "id": "userInfo",
+        "content": "{\"username\":\"wenjun\",\"email\":\"wenjun@primuslabs.xyz\",\"credits\":0.0,\"granted_credits\":59.834358,\"role\":\"user\",\"avatar\":\"/default-avatar.png\",\"flag_reset_password\":false,\"flag_has_password\":true,\"team_name\":\"wenjun's projects\",\"team_tier\":\"ENTERPRISE\",\"trial_ended_at\":null,\"email_verified\":true,\"totp_enabled\":false,\"backup_codes_count\":0,\"is_post_paid\":false,\"outstanding_amount\":0.0}"
+      },
+      {
+        "id": "cvmList",
+        "content": "{\"3c98d7e0-75ee-41f0-bf85-96580bc2d1f0\":{\"vm_uuid\":\"3c98d7e0-75ee-41f0-bf85-96580bc2d1f0\",\"status\":\"running\",\"uptime\":\"21days 1h 1m 30s\",\"in_progress\":false,\"boot_progress\":null,\"boot_error\":null,\"operation_type\":null,\"operation_started_at\":null,\"correlation_id\":null},\"e7d19dec-f01e-4990-b19b-2eb2c31bd31d\":{\"vm_uuid\":\"e7d19dec-f01e-4990-b19b-2eb2c31bd31d\",\"status\":\"running\",\"uptime\":\"8days 3h 2m 58s\",\"in_progress\":false,\"boot_progress\":null,\"boot_error\":null,\"operation_type\":null,\"operation_started_at\":null,\"correlation_id\":null},\"9c977789-775c-476d-9a4f-17c2e4677b43\":{\"vm_uuid\":\"9c977789-775c-476d-9a4f-17c2e4677b43\",\"status\":\"running\",\"uptime\":\"7days 19h 17m 32s\",\"in_progress\":false,\"boot_progress\":null,\"boot_error\":null,\"operation_type\":null,\"operation_started_at\":null,\"correlation_id\":null},\"5e860d64-ede3-4336-9e2c-af44621b461f\":{\"vm_uuid\":\"5e860d64-ede3-4336-9e2c-af44621b461f\",\"status\":\"running\",\"uptime\":\"21days 1h 2m 33s\",\"in_progress\":false,\"boot_progress\":null,\"boot_error\":null,\"operation_type\":null,\"operation_started_at\":null,\"correlation_id\":null}}"
+      }
+    ]
+  }
+}

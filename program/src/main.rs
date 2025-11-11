@@ -1,30 +1,29 @@
-// These two lines are necessary for the program to properly compile.
-//
-// Under the hood, we wrap your main function with some extra code so that it behaves properly
-// inside the zkVM.
 #![no_main]
+
+mod binance;
+mod errors;
+mod phala;
+
 sp1_zkvm::entrypoint!(main);
 
-use anyhow::Result;
+// use std::time::{SystemTime};
+use crate::{
+    binance::{ApiResponse, PurchaseRecord, RedeemRecord},
+    errors::{ZkErrorCode, ZktlsError},
+    phala::{UserInfo, VmStatusMap},
+};
+use anyhow::{Context, Result};
+use sp1_zkvm::io::{commit, read};
 use serde_json::json;
-use sp1_zkvm::io::commit;
-use std::collections::{HashMap, HashSet};
-use zktls_att_verification::attestation_data::verify_attestation_data;
-use zktls_lib::PublicValuesStruct;
+use zktls_att_verification::attestation_data::{AttestationData, verify_attestation_data};
+use crate::binance::PositionInfo;
 
-mod errors;
-use errors::{ZkErrorCode, ZktlsError};
+fn app_main() -> Result<()> {
+    // let now_ts = SystemTime::now();
+    let attestation_data: String = read();
 
-const RISK_URL: &str = "https://exchange.unipay.dev/public/positionRisk";
-const BALANCE_URL: &str = "https://exchange.unipay.dev/public/balance";
-const STABLE_COINS: &[&str] = &[
-    "USDT", "USDC", "FDUSD", "TUSD", "USDE", "XUSD", "USD1", "BFUSD", "USDP", "DAI",
-];
+    // println!("attestation_data:{}", attestation_data);
 
-fn app_main(pv: &mut PublicValuesStruct) -> Result<(), ZktlsError> {
-    let attestation_data: String = sp1_zkvm::io::read();
-
-    //
     // 0. Make attestation config
     let v: serde_json::Value = serde_json::from_str(&attestation_data)
         .map_err(|e| zkerr!(ZkErrorCode::ParseAttestationData, e.to_string()))?;
@@ -36,129 +35,278 @@ fn app_main(pv: &mut PublicValuesStruct) -> Result<(), ZktlsError> {
         .ok_or_else(|| zkerr!(ZkErrorCode::GetAttestorAddressFail))?;
     let attestion_confg = json!({
         "attestor_addr": attestor_addr,
-        "url": [RISK_URL, BALANCE_URL]
+        "url": ["https://cloud.phala.network/api/status/batch",
+            "https://cloud-api.phala.network/api/v1/auth/me?",
+            "https://www.binance.com/bapi/earn/v2/private/lending/union/purchaseRecord/list",
+            "https://www.binance.com/bapi/earn/v1/private/lending/union/redemption/list?",
+            "https://www.binance.com/bapi/earn/v2/private/lending/daily/token/position?"
+        ]
     });
-    pv.attestor = attestor_addr.to_string();
-    pv.base_urls.push(RISK_URL.to_string());
-    pv.base_urls.push(BALANCE_URL.to_string());
-
-    //
     // 1. Verify
-    let (attestation_data, _, messages) = verify_attestation_data(&attestation_data, &attestion_confg.to_string())
-        .map_err(|e| zkerr!(ZkErrorCode::VerifyAttestation, e.to_string()))?;
+    let (attestation_data, _, _messages) =
+        verify_attestation_data(&attestation_data, &attestion_confg.to_string())?;
+    println!("verify success");
+    let source = extra_data_source(&attestation_data);
+    println!("source is {source}");
+    if source.eq("phala") {
+        return handle_phala(&attestation_data);
+    } else if source.eq("binance") {
+        return handle_binance(&attestation_data);
+    } else {
+        ensure_zk!(true, zkerr!(ZkErrorCode::NotSupportSource));
+    }
+    Ok(())
+}
+
+// Extra source from attestation
+fn extra_data_source(attestation_data: &AttestationData) -> &'static str {
+    if let Some(request) = attestation_data
+        .public_data
+        .get(0)
+        .and_then(|pd| pd.attestation.request.get(0))
+    {
+        let url = &request.url;
+
+        if url.contains("cloud-api.phala.network") {
+            "phala"
+        } else if url.contains("www.binance.com") {
+            "binance"
+        } else {
+            "unknown"
+        }
+    } else {
+        "unknown"
+    }
+}
+
+fn handle_binance(attestation_data: &AttestationData) -> Result<()> {
+    let first_public = attestation_data
+        .public_data
+        .get(0)
+        .context("public_data is empty")?;
+    let now_ts = first_public.attestationTime;
+    let (
+        today_start,
+        yesterday_start,
+        yesterday_end,
+        day_before_yesterday_start,
+        day_before_yesterday_end,
+    ) = get_day_ranges(now_ts);
+
+    let mut today_asset: f64 = 0.0;
+
+    let mut today_buy_amount: f64 = 0.0;
+    let mut today_sell_amount: f64 = 0.0;
+
+    let mut yesterday_buy_amount: f64 = 0.0;
+    let mut yesterday_sell_amount: f64 = 0.0;
+
+    let mut day_before_yesterday_buy_amount = 0.0;
+    let mut day_before_yesterday_sell_amount: f64 = 0.0;
 
     //
-    // 2. Do some valid checks
-    // In the vast majority of cases, it is legal. Data is extracted while the inspection is conducted.
-    let msg_len = messages[0].len();
-    let requests = attestation_data.public_data[0].attestation.request.clone();
-    let requests_len = requests.len();
-    ensure_zk!(requests_len % 2 == 0, zkerr!(ZkErrorCode::InvalidRequestLength));
-    ensure_zk!(requests_len == msg_len, zkerr!(ZkErrorCode::InvalidMessagesLength));
-
-    let mut i = 0;
-    let mut um_paths = vec![];
-    um_paths.push("$.[*].symbol");
-    um_paths.push("$.[*].entryPrice");
-
-    let mut bal_paths = vec![];
-    bal_paths.push("$.[*].asset");
-    bal_paths.push("$.[*].totalWalletBalance");
-    bal_paths.push("$.[*].umUnrealizedPNL");
-
-    // pv.timestamp = u128::MAX;
-    let mut asset_bals = HashMap::new();
-    let mut um_prices = vec![];
-    // strict order: um1 bal1 um2 bal2 ...
-    for request in requests {
-        // let ts = request
-        //     .url
-        //     .split("timestamp=")
-        //     .nth(1)
-        //     .and_then(|s| s.split('&').next())
-        //     .filter(|s| !s.is_empty())
-        //     .ok_or(zkerr!(ZkErrorCode::CannotFoundTimestamp))?
-        //     .parse::<u128>()
-        //     .map_err(|_| zkerr!(ZkErrorCode::ParseTimestampFailed))?;
-        // pv.timestamp = pv.timestamp.min(ts);
-
-        // check url and get assets' balance
-        if request.url.starts_with(RISK_URL) {
-            ensure_zk!(i % 2 == 0, zkerr!(ZkErrorCode::InvalidRequestOrder));
-
-            let json_value = messages[0][i]
-                .get_json_values(&um_paths)
-                .map_err(|e| zkerr!(ZkErrorCode::GetJsonValueFail, e.to_string()))?;
-
-            ensure_zk!(
-                json_value.len() % um_paths.len() == 0,
-                zkerr!(ZkErrorCode::InvalidJsonValueSize)
-            );
-
-            // Collects UM (asset => entryPrice) info
-            let mut prices = vec![];
-            let size = json_value.len() / um_paths.len();
-            for j in 0..size {
-                let asset = json_value[j].trim_matches('"').to_ascii_uppercase();
-                let price = json_value[size + j].trim_matches('"').to_string();
-                let v = format!("{}:{}", asset, price);
-                prices.push(v);
+    let default_token = "PHA";
+    let mut user_id = String::new();
+    if let Some(responses) = attestation_data.private_data.plain_json_response.as_ref() {
+        for response in responses {
+            if response.id.eq("subscriptionList") {
+                let subscription_rsp: ApiResponse<Vec<PurchaseRecord>> =
+                    serde_json::from_str(response.content.as_str())?;
+                for sub in subscription_rsp.data {
+                    if !default_token.eq(&sub.asset) {
+                        continue;
+                    }
+                    // check time
+                    let timestamp_str = sub.create_timestamp;
+                    let timestamp: u64 = timestamp_str.parse::<u64>()?;
+                    let buy_amount = sub.amount.parse::<f64>()?;
+                    if timestamp >= today_start && timestamp < now_ts {
+                        today_buy_amount += buy_amount
+                    }
+                    if timestamp >= yesterday_start && timestamp < yesterday_end {
+                        yesterday_buy_amount += buy_amount
+                    }
+                    if timestamp >= day_before_yesterday_start
+                        && timestamp < day_before_yesterday_end
+                    {
+                        day_before_yesterday_buy_amount += buy_amount
+                    }
+                }
+                println!("{},today_buy_amount: {}", default_token, today_buy_amount);
+                println!(
+                    "{},yesterday_buy_amount:{}",
+                    default_token, yesterday_buy_amount
+                );
+                println!(
+                    "{},day_before_yesterday_buy_amount:{}",
+                    default_token, day_before_yesterday_buy_amount
+                );
             }
-            prices.sort();
-            let um_price = prices.join(",");
-            um_prices.push(um_price);
-        } else if request.url.starts_with(BALANCE_URL) {
-            let json_value = messages[0][i]
-                .get_json_values(&bal_paths)
-                .map_err(|e| zkerr!(ZkErrorCode::GetJsonValueFail, e.to_string()))?;
-
-            ensure_zk!(
-                json_value.len() % bal_paths.len() == 0,
-                zkerr!(ZkErrorCode::InvalidJsonValueSize)
-            );
-
-            let size = json_value.len() / bal_paths.len();
-            for j in 0..size {
-                let asset = json_value[j].trim_matches('"').to_ascii_uppercase();
-                let bal: f64 = json_value[size + j].trim_matches('"').parse().unwrap_or(0.0);
-                let pnl: f64 = json_value[size * 2 + j].trim_matches('"').parse().unwrap_or(0.0);
-                *asset_bals.entry(asset.to_string()).or_insert(0.0) += bal + pnl;
+            if response.id.eq("redemptionList") {
+                let redeem_rsp: ApiResponse<Vec<RedeemRecord>> =
+                    serde_json::from_str(response.content.as_str())?;
+                for red in redeem_rsp.data {
+                    if !default_token.eq(&red.asset) {
+                        continue;
+                    }
+                    // check time
+                    let timestamp_str = red.create_timestamp;
+                    let timestamp: u64 = timestamp_str.parse::<u64>()?;
+                    let sell_amount = red.amount.parse::<f64>()?;
+                    if timestamp >= today_start && timestamp < now_ts {
+                        today_sell_amount += sell_amount
+                    }
+                    if timestamp >= yesterday_start && timestamp < yesterday_end {
+                        yesterday_sell_amount += sell_amount
+                    }
+                    if timestamp >= day_before_yesterday_start
+                        && timestamp < day_before_yesterday_end
+                    {
+                        day_before_yesterday_sell_amount += sell_amount
+                    }
+                }
+                println!("{},today_sell_amount: {}", default_token, today_sell_amount);
+                println!(
+                    "{},yesterday_sell_amount:{}",
+                    default_token, yesterday_sell_amount
+                );
+                println!(
+                    "{},day_before_yesterday_sell_amount:{}",
+                    default_token, day_before_yesterday_sell_amount
+                );
             }
-        } else {
-            return Err(zkerr!(ZkErrorCode::InvalidRequestUrl));
+            if response.id.eq("assetDetails") {
+                let asset_data_rsp: ApiResponse<Vec<PositionInfo>> =
+                    serde_json::from_str(response.content.as_str())?;
+
+                for asd in asset_data_rsp.data{
+                    if user_id.is_empty() {
+                        user_id = asd.user_id.clone()
+                    }
+                    if default_token.eq(&asd.asset) {
+                        today_asset = asd.free_amount.parse::<f64>()?;
+                        println!("{},{}", default_token, today_asset);
+                        break;
+                    }
+                }
+            }
         }
-
-        i += 1;
     }
-
-    // Is the account duplicate?
-    let mut seen = HashSet::new();
-    ensure_zk!(
-        !um_prices.iter().any(|x| !seen.insert(x)),
-        zkerr!(ZkErrorCode::DuplicateAccount)
+    // compute average amount of the past 3 days
+    let yesterday_end_amount = today_asset - today_buy_amount + today_sell_amount;
+    let day_before_yesterday_end_amount =
+        yesterday_end_amount - yesterday_buy_amount + yesterday_sell_amount;
+    let two_day_before_yesterday_end_amount = day_before_yesterday_end_amount
+        - day_before_yesterday_buy_amount
+        + day_before_yesterday_sell_amount;
+    let average_past_3_days = (yesterday_end_amount
+        + day_before_yesterday_end_amount
+        + two_day_before_yesterday_end_amount)
+        / 3.0;
+    println!("user_id = {}", user_id);
+    println!(
+        "{} average amount in the past 3 days:{}",
+        default_token, average_past_3_days
     );
-
-    // Summary by Category
-    let mut stablecoin_sum = 0.0;
-    for (k, v) in asset_bals {
-        if STABLE_COINS.contains(&k.as_str()) {
-            stablecoin_sum += v;
-        } else {
-            pv.asset_balance.insert(k, v);
-        }
-    }
-    pv.asset_balance.insert("STABLECOIN".to_string(), stablecoin_sum);
+    commit(&user_id);
+    commit(&average_past_3_days);
 
     Ok(())
 }
 
-pub fn main() {
-    let mut pv = PublicValuesStruct::default();
-    if let Err(e) = app_main(&mut pv) {
-        println!("Error: {} {}", e.icode(), e.msg());
-        pv.status = e.icode();
+fn handle_phala(attestation_data: &AttestationData) -> Result<()> {
+    if let Some(responses) = attestation_data.private_data.plain_json_response.as_ref() {
+        let mut up_time_enough = false;
+
+        for response in responses {
+            let id = response.id.as_str();
+            let content = response.content.as_str();
+            if "userInfo".eq(id) {
+                let user_info: UserInfo = serde_json::from_str(content)?;
+                println!("userInfo: {:?}", user_info);
+                commit(&user_info.email);
+            } else {
+                let vms: VmStatusMap = serde_json::from_str(content)?;
+                up_time_enough = check_all_vm_uptime(&vms);
+            }
+        }
+
+        ensure_zk!(up_time_enough, zkerr!(ZkErrorCode::UpTimeNotEnough));
     } else {
-        println!("OK");
+        ensure_zk!(true, zkerr!(ZkErrorCode::EmptyPlainResponse));
     }
-    commit(&pv);
+    Ok(())
+}
+
+fn check_all_vm_uptime(vms: &VmStatusMap) -> bool {
+    let mut total_seconds: u64 = 0;
+
+    for (_uuid, vm_status) in vms {
+        let uptime = &vm_status.uptime;
+        // if time unit is hour and others, uptime meets the requirement
+        if uptime.contains("day")
+            || uptime.contains("days")
+            || uptime.contains("hour")
+            || uptime.contains("h")
+            || uptime.contains("hours")
+            || uptime.contains("month")
+            || uptime.contains("months")
+            || uptime.contains("year")
+            || uptime.contains("years")
+        {
+            return true;
+        }
+        // Compute total time of cvms
+        total_seconds += parse_minutes_seconds(uptime);
+    }
+    println!("VM uptime: {}", total_seconds);
+    total_seconds >= 10 * 60
+}
+
+fn parse_minutes_seconds(uptime: &str) -> u64 {
+    let mut seconds = 0u64;
+
+    for part in uptime.split_whitespace() {
+        if part.ends_with('m') {
+            if let Ok(n) = part.trim_end_matches('m').parse::<u64>() {
+                seconds += n * 60;
+            }
+        } else if part.ends_with('s') {
+            if let Ok(n) = part.trim_end_matches('s').parse::<u64>() {
+                seconds += n;
+            }
+        }
+    }
+
+    seconds
+}
+
+fn get_day_ranges(now_ts: u64) -> (u64, u64, u64, u64, u64) {
+    const SECS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
+
+    // today start
+    let today_start = now_ts - (now_ts % SECS_PER_DAY);
+
+    // yesterday start and end
+    let yesterday_start = today_start - SECS_PER_DAY;
+    let yesterday_end = today_start - 1;
+
+    // the day before yesterday start and end
+    let day_before_start = today_start - 2 * SECS_PER_DAY;
+    let day_before_end = yesterday_start - 1;
+
+    (
+        today_start,
+        yesterday_start,
+        yesterday_end,
+        day_before_start,
+        day_before_end,
+    )
+}
+pub fn main() {
+    if let Err(e) = app_main() {
+        println!("Error: {:?}", e);
+        // panic or not?
+        panic!("error {:?}", e);
+    }
 }

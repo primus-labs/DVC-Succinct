@@ -1,0 +1,85 @@
+{
+  "verification_type": "HASH_COMPARSION",
+  "public_data": [
+    {
+      "attestation": {
+        "recipient": "0x8F0D4188307496926d785fB00E08Ed772f3be890",
+        "request": [
+          {
+            "url": "https://www.binance.com/bapi/earn/v2/private/lending/union/purchaseRecord/list?",
+            "header": "",
+            "method": "GET",
+            "body": ""
+          },
+          {
+            "url": "https://www.binance.com/bapi/earn/v1/private/lending/union/redemption/list?",
+            "header": "",
+            "method": "GET",
+            "body": ""
+          },
+          {
+            "url": "https://www.binance.com/bapi/earn/v2/private/lending/daily/token/position?",
+            "header": "",
+            "method": "GET",
+            "body": ""
+          }
+        ],
+        "responseResolves": [
+          {
+            "oneUrlResponseResolve": [
+              {
+                "keyName": "subscriptionList",
+                "parseType": "",
+                "parsePath": "{\"type\":\"FIELD_ARITHMETIC\",\"op\":\"SHA256\",\"field\":\"$\"}"
+              }
+            ]
+          },
+          {
+            "oneUrlResponseResolve": [
+              {
+                "keyName": "redemptionList",
+                "parseType": "",
+                "parsePath": "{\"type\":\"FIELD_ARITHMETIC\",\"op\":\"SHA256\",\"field\":\"$\"}"
+              }
+            ]
+          },
+          {
+            "oneUrlResponseResolve": [
+              {
+                "keyName": "assetDetails",
+                "parseType": "",
+                "parsePath": "{\"type\":\"FIELD_ARITHMETIC\",\"op\":\"SHA256\",\"field\":\"$\"}"
+              }
+            ]
+          }
+        ],
+        "data": "{\"assetDetails\":\"b110c874b11654707f99de08c4776dc7045d21d9f31d9d8017b8a2717ea5aafb\",\"assetDetails.count\":\"1\",\"redemptionList\":\"1be376e8797838475b4d100fba885a4e92ec9770cffccec6926ccb25ba83b87b\",\"redemptionList.count\":\"1\",\"subscriptionList\":\"242c63046a26a42ac0bf0da6308267c44d24cd2f8fcd6531ddce3a37b55fec92\",\"subscriptionList.count\":\"1\"}",
+        "attConditions": "[{\"op\":\"REVEAL_HEX_STRING\",\"field\":\"{\\\"type\\\":\\\"FIELD_ARITHMETIC\\\",\\\"op\\\":\\\"SHA256\\\",\\\"field\\\":\\\"$\\\"}\"},{\"op\":\"REVEAL_HEX_STRING\",\"field\":\"{\\\"type\\\":\\\"FIELD_ARITHMETIC\\\",\\\"op\\\":\\\"SHA256\\\",\\\"field\\\":\\\"$\\\"}\"},{\"op\":\"REVEAL_HEX_STRING\",\"field\":\"{\\\"type\\\":\\\"FIELD_ARITHMETIC\\\",\\\"op\\\":\\\"SHA256\\\",\\\"field\\\":\\\"$\\\"}\"}]",
+        "timestamp": 1762501116220,
+        "additionParams": "{\"pageSize\":100,\"startTime\":1762272000000,\"endTime\":1762531199999,\"asset\":\"PHA\",\"algorithmType\":\"proxytls\"}"
+      },
+      "attestor": "0x0de886e31723e64aa72e51977b14475fb66a9f72",
+      "signature": "0xeafed5d7bc2891d5dd78e73c30cda45570b083f863459ae7b246a242f9df9d334d18a4681815e74fa1287f9bd2f65d0e81a93e39ba516feb768e4b9c4a7aab6f1b",
+      "reportTxHash": "0xbe4477a339a0de15bc485d3a9b6a7bfdb975899d1b424324aabf0abd13c8683d",
+      "taskId": "0xe3fa31bb65f0e3fc053937416d1462bb83e3dfcfab0313f971cce4daf948ca2e",
+      "attestorUrl": "d511b29f688cd0c2d7d9ec3e148e51b63a5390cf-18080.dstack-base-prod7.phala.network",
+      "attestationTime": 1762501116220
+    }
+  ],
+  "private_data": {
+    "plain_json_response": [
+      {
+        "id": "subscriptionList",
+        "content": "{\"code\":\"000000\",\"message\":\"null\",\"messageDetail\":null,\"data\":[{\"id\":\"10120062465\",\"createTimestamp\":\"1762499800000\",\"productName\":\"PHA\",\"productId\":\"PHA001\",\"userId\":\"782151446\",\"asset\":\"PHA\",\"lot\":\"0\",\"amount\":\"1.00000000\",\"startTime\":null,\"status\":\"SUCCESS\",\"lendingType\":\"DAILY\",\"type\":\"AUTO_PURCHASE\",\"clientPurchaseId\":null,\"currencySource\":\"SPOT\",\"currencySourceDetail\":null},{\"id\":\"10115355124\",\"createTimestamp\":\"1762483454000\",\"productName\":\"PHA\",\"productId\":\"PHA001\",\"userId\":\"782151446\",\"asset\":\"PHA\",\"lot\":\"0\",\"amount\":\"100.00000000\",\"startTime\":null,\"status\":\"SUCCESS\",\"lendingType\":\"DAILY\",\"type\":\"PURCHASE\",\"clientPurchaseId\":null,\"currencySource\":\"SPOT\",\"currencySourceDetail\":null}],\"total\":2,\"success\":true}"
+      },
+      {
+        "id": "redemptionList",
+        "content": "{\"code\":\"000000\",\"message\":\"null\",\"messageDetail\":null,\"data\":[{\"userId\":\"782151446\",\"projectId\":\"PHA001\",\"lot\":null,\"createTimestamp\":\"1762493498000\",\"amount\":\"1.00000000\",\"principal\":\"1.00000000\",\"interest\":null,\"payedPrincipal\":null,\"payedInterest\":null,\"startTime\":\"1762473600000\",\"asset\":\"PHA\",\"projectName\":\"PHA\",\"status\":\"PAID\",\"lendingType\":\"DAILY\",\"type\":\"FAST\",\"clientRedeemId\":null,\"deliverDate\":\"1762473600000\",\"id\":\"768097445\",\"currencyTarget\":\"SPOT\"}],\"total\":1,\"success\":true}"
+      },
+      {
+        "id": "assetDetails",
+        "content": "{\"code\":\"000000\",\"message\":\"null\",\"messageDetail\":null,\"data\":[{\"userId\":\"782151446\",\"asset\":\"ETH\",\"token\":\"LDETH\",\"productId\":\"ETH001\",\"productName\":\"ETH\",\"apr\":\"0.01437086\",\"dailyInterestRate\":null,\"annualInterestRate\":\"0.01437086\",\"avgAnnualInterestRate\":null,\"marketApr\":\"0.01337086\",\"exchangeRate\":\"1.025541968253\",\"tokenAmount\":\"0.27078406\",\"totalAmount\":\"0.27770041\",\"experienceCouponTotalInterest\":null,\"lockedAmount\":\"0.00000000\",\"freeAmount\":\"0.27770041\",\"freezeAmount\":\"0.00000000\",\"totalInterest\":\"0.00000041\",\"expectedInterest\":null,\"canRedeem\":true,\"redeemingAmount\":\"0.00000000\",\"redeemingRecordList\":null,\"todayPurchasedAmount\":\"0.27770000\",\"accruingInterest\":\"0.27770041\",\"deliverDate\":null,\"autoTransfer\":true,\"canPurchase\":false,\"hasAirDrop\":false,\"airDropDetailList\":null,\"hasTierInterest\":true,\"tierAnnualInterestRateList\":[{\"beginAmount\":\"0.00000000\",\"endAmount\":\"0.20000000\",\"annualInterestRate\":\"0.00100000\"}],\"collateralTokenAmount\":\"0.00000000\",\"collateralAmount\":\"0.00000000\",\"cumulativeAdditionalReward\":\"0.00000000\",\"cumulativeMarketTotalReward\":\"0.00000041\",\"cumulativeRealTimeAprRewards\":\"0.00000041\",\"yesterdayRealTimeAprRewards\":\"0.00000000\",\"yesterdayBonusRewards\":\"0.00000000\",\"yesterdayRewards\":\"0.00000000\",\"btcValue\":\"0.00912245\",\"usdtValue\":\"928.18307337\",\"usdtValueWithCollateral\":\"928.18307337\",\"totalInterestBtcValue\":\"0.00000001\",\"activityEndDate\":null,\"minPurchaseAmount\":\"0.00200000\",\"hasLaunchpool\":false,\"launchpoolHaveUnclaimedRewards\":false,\"launchpoolApr\":\"0.00000000\",\"unclaimedRewards\":[],\"launchpoolAllCoinDetails\":[],\"bnSolBoostApr\":null,\"bnSolBoostAprDetailList\":null},{\"userId\":\"782151446\",\"asset\":\"PHA\",\"token\":\"LDPHA\",\"productId\":\"PHA001\",\"productName\":\"PHA\",\"apr\":\"0.06113167\",\"dailyInterestRate\":null,\"annualInterestRate\":\"0.06113167\",\"avgAnnualInterestRate\":null,\"marketApr\":\"0.06113167\",\"exchangeRate\":\"1.037380481889\",\"tokenAmount\":\"96.39960537\",\"totalAmount\":\"100.00306907\",\"experienceCouponTotalInterest\":null,\"lockedAmount\":\"0.00000000\",\"freeAmount\":\"100.00306907\",\"freezeAmount\":\"0.00000000\",\"totalInterest\":\"0.00306907\",\"expectedInterest\":null,\"canRedeem\":true,\"redeemingAmount\":\"0.00000000\",\"redeemingRecordList\":null,\"todayPurchasedAmount\":\"101.00000000\",\"accruingInterest\":\"100.00306907\",\"deliverDate\":null,\"autoTransfer\":true,\"canPurchase\":false,\"hasAirDrop\":false,\"airDropDetailList\":null,\"hasTierInterest\":false,\"tierAnnualInterestRateList\":null,\"collateralTokenAmount\":\"0.00000000\",\"collateralAmount\":\"0.00000000\",\"cumulativeAdditionalReward\":\"0.00000000\",\"cumulativeMarketTotalReward\":\"0.00306907\",\"cumulativeRealTimeAprRewards\":\"0.00306907\",\"yesterdayRealTimeAprRewards\":\"0.00000000\",\"yesterdayBonusRewards\":\"0.00000000\",\"yesterdayRewards\":\"0.00000000\",\"btcValue\":\"0.00005500\",\"usdtValue\":\"5.56017064\",\"usdtValueWithCollateral\":\"5.56017064\",\"totalInterestBtcValue\":\"0.00000000\",\"activityEndDate\":null,\"minPurchaseAmount\":\"0.01000000\",\"hasLaunchpool\":false,\"launchpoolHaveUnclaimedRewards\":false,\"launchpoolApr\":\"0.00000000\",\"unclaimedRewards\":[],\"launchpoolAllCoinDetails\":[],\"bnSolBoostApr\":null,\"bnSolBoostAprDetailList\":null},{\"userId\":\"782151446\",\"asset\":\"USDC\",\"token\":\"LDUSDC\",\"productId\":\"USDC001\",\"productName\":\"USDC\",\"apr\":\"0.05708975\",\"dailyInterestRate\":null,\"annualInterestRate\":\"0.05708975\",\"avgAnnualInterestRate\":null,\"marketApr\":\"0.01708975\",\"exchangeRate\":\"1.095256838120\",\"tokenAmount\":\"4240.09860471\",\"totalAmount\":\"4643.99699111\",\"experienceCouponTotalInterest\":null,\"lockedAmount\":\"0.00000000\",\"freeAmount\":\"4643.99699111\",\"freezeAmount\":\"0.00000000\",\"totalInterest\":\"157.94633011\",\"expectedInterest\":null,\"canRedeem\":true,\"redeemingAmount\":\"0.00000000\",\"redeemingRecordList\":null,\"todayPurchasedAmount\":\"0.50863965\",\"accruingInterest\":\"4643.99699111\",\"deliverDate\":null,\"autoTransfer\":true,\"canPurchase\":false,\"hasAirDrop\":false,\"airDropDetailList\":null,\"hasTierInterest\":true,\"tierAnnualInterestRateList\":[{\"beginAmount\":\"0.00000000\",\"endAmount\":\"10000.00000000\",\"annualInterestRate\":\"0.04000000\"}],\"collateralTokenAmount\":\"0.00000000\",\"collateralAmount\":\"0.00000000\",\"cumulativeAdditionalReward\":\"92.61922839\",\"cumulativeMarketTotalReward\":\"65.32710172\",\"cumulativeRealTimeAprRewards\":\"65.32710172\",\"yesterdayRealTimeAprRewards\":\"0.19139110\",\"yesterdayBonusRewards\":\"0.50867486\",\"yesterdayRewards\":\"0.70006596\",\"btcValue\":\"0.04564472\",\"usdtValue\":\"4646.31898960\",\"usdtValueWithCollateral\":\"4646.31898960\",\"totalInterestBtcValue\":\"0.00155241\",\"activityEndDate\":null,\"minPurchaseAmount\":\"0.01000000\",\"hasLaunchpool\":false,\"launchpoolHaveUnclaimedRewards\":false,\"launchpoolApr\":\"0.00000000\",\"unclaimedRewards\":[],\"launchpoolAllCoinDetails\":[],\"bnSolBoostApr\":null,\"bnSolBoostAprDetailList\":null},{\"userId\":\"782151446\",\"asset\":\"USDT\",\"token\":\"LDUSDT\",\"productId\":\"USDT001\",\"productName\":\"USDT\",\"apr\":\"0.07200340\",\"dailyInterestRate\":null,\"annualInterestRate\":\"0.07200340\",\"avgAnnualInterestRate\":null,\"marketApr\":\"0.02200340\",\"exchangeRate\":\"1.122173908897\",\"tokenAmount\":\"503.79006729\",\"totalAmount\":\"565.34006907\",\"experienceCouponTotalInterest\":null,\"lockedAmount\":\"0.00000000\",\"freeAmount\":\"565.34006907\",\"freezeAmount\":\"0.00000000\",\"totalInterest\":\"0.00132327\",\"expectedInterest\":null,\"canRedeem\":true,\"redeemingAmount\":\"0.00000000\",\"redeemingRecordList\":null,\"todayPurchasedAmount\":\"565.33874580\",\"accruingInterest\":\"565.34006907\",\"deliverDate\":null,\"autoTransfer\":true,\"canPurchase\":false,\"hasAirDrop\":false,\"airDropDetailList\":null,\"hasTierInterest\":true,\"tierAnnualInterestRateList\":[{\"beginAmount\":\"0.00000000\",\"endAmount\":\"200.00000000\",\"annualInterestRate\":\"0.05000000\"}],\"collateralTokenAmount\":\"0.00000000\",\"collateralAmount\":\"0.00000000\",\"cumulativeAdditionalReward\":\"0.00000000\",\"cumulativeMarketTotalReward\":\"0.00132327\",\"cumulativeRealTimeAprRewards\":\"0.00132327\",\"yesterdayRealTimeAprRewards\":\"0.00000000\",\"yesterdayBonusRewards\":\"0.00000000\",\"yesterdayRewards\":\"0.00000000\",\"btcValue\":\"0.00555407\",\"usdtValue\":\"565.34006907\",\"usdtValueWithCollateral\":\"565.34006907\",\"totalInterestBtcValue\":\"0.00000001\",\"activityEndDate\":null,\"minPurchaseAmount\":\"0.01000000\",\"hasLaunchpool\":false,\"launchpoolHaveUnclaimedRewards\":false,\"launchpoolApr\":\"0.00000000\",\"unclaimedRewards\":[],\"launchpoolAllCoinDetails\":[],\"bnSolBoostApr\":null,\"bnSolBoostAprDetailList\":null}],\"total\":4,\"success\":true}"
+      }
+    ]
+  }
+}

@@ -21,7 +21,7 @@ The program is automatically built through `script/build.rs` when the script is 
 To run the program without generating a proof:
 
 ```sh
-cd script
+cd prover
 cargo run --release -- --execute
 ```
 
@@ -32,7 +32,7 @@ This will execute the program and display the output.
 To generate an SP1 [core proof](https://docs.succinct.xyz/docs/sp1/generating-proofs/proof-types#core-default) for your program:
 
 ```sh
-cd script
+cd prover
 cargo run --release -- --prove
 ```
 
@@ -52,11 +52,11 @@ Then, set the `SP1_PROVER` environment variable to `network` and set the `NETWOR
 ## Localtest
 
 ```sh
-cd script
+cd prover
 RUST_LOG=info cargo build --release
 
 cd ..
 RUST_LOG=info ./target/release/zktls --execute \
-  --input ./script/data/hash_attestation_data.json \
+  --input ./prover/data/hash_attestation_data.json \
   --output-dir proof_output
 ```
