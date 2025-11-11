@@ -97,7 +97,7 @@ class SimpleHTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
-        if self.path not in ["/zktls/prove", "/zktls/result"]:
+        if self.path not in ["/zktls/prove", "/zktls/result", "/zktls/is_busy"]:
             data = {"code": "10001", "description": "only support /zktls/prove, /zktls/result"}
             self.end_200(data)
             return
@@ -109,6 +109,8 @@ class SimpleHTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
         data = json.loads(body)
         requestid = data["requestid"]
 
+        global is_busy, tasks
+
         if self.path == "/zktls/is_busy":
             if is_busy.value == 1:
                 data = {"code": "10002", "description": "Server is busy, please try later."}
@@ -117,22 +119,23 @@ class SimpleHTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
                 data = {"code": "0", "description": "free."}
                 self.end_200(data)
         elif self.path == "/zktls/prove":
-            # if is_busy.value == 1:
-            #     data = {"code": "10002", "description": "Server is busy, please try later."}
-            #     self.end_200(data)
-            #     return
-
             # the body is json string
             attestationData = json.dumps(data["attestationData"], separators=(",", ":"), ensure_ascii=False)
             # print("requestid", requestid)
             # print("attestationData", attestationData)
 
             # set status
-            is_busy.value = 1
-            if tasks.get(requestid).status == "running":
+            existing_task = tasks.get(requestid)
+            if isinstance(existing_task, dict) and existing_task.get("status") == "running":
                 data = {"code": "10004", "description": f"requestid {requestid} is running!"}
                 self.end_200(data)
                 return
+            if is_busy.value == 1:
+                data = {"code": "10002", "description": "Server is busy, please try later."}
+                self.end_200(data)
+                return
+
+            is_busy.value = 1
             tasks[requestid] = {"status": "running"}
 
             # execute prove program
