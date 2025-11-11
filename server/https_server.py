@@ -104,7 +104,7 @@ class SimpleHTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length).decode("utf-8")
-        print("body", body)
+        # print("body", body)
 
         data = json.loads(body)
         requestid = data["requestid"]
@@ -124,11 +124,15 @@ class SimpleHTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
 
             # the body is json string
             attestationData = json.dumps(data["attestationData"], separators=(",", ":"), ensure_ascii=False)
-            print("requestid", requestid)
-            print("attestationData", attestationData)
+            # print("requestid", requestid)
+            # print("attestationData", attestationData)
 
             # set status
             is_busy.value = 1
+            if tasks.get(requestid).status == "running":
+                data = {"code": "10004", "description": f"requestid {requestid} is running!"}
+                self.end_200(data)
+                return
             tasks[requestid] = {"status": "running"}
 
             # execute prove program
