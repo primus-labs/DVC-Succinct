@@ -58,6 +58,7 @@ async fn main() {
     let mut stdin = SP1Stdin::new();
     let attestation_data = fs::read_to_string(args.input).unwrap();
     stdin.write(&attestation_data);
+    println!("Receive proof task!");
 
     if args.execute {
         // Setup the prover client.
@@ -96,6 +97,7 @@ async fn main() {
                 .request_async()
                 .await
                 .unwrap();
+            println!("Proof ID: {}", proof_id);
 
             proof_fixture.proof_id = proof_id.to_string();
 

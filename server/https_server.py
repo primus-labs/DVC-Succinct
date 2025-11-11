@@ -19,7 +19,7 @@ start = time.perf_counter()
 # print("env", env)
 
 
-def run_command_succinct(requestid, attestationData):
+def run_command_succinct(requestid, attestationData, shared_busy, shared_tasks):
     t_start = time.perf_counter()
     try:
         input_dir = f"./request_data"
@@ -53,7 +53,7 @@ def run_command_succinct(requestid, attestationData):
                 proof_fixture = f.read()
 
         t_end = time.perf_counter()
-        tasks[requestid] = {
+        shared_tasks[requestid] = {
             "status": "done",
             "returncode": result.returncode,
             "stdout": result.stdout,
@@ -65,7 +65,7 @@ def run_command_succinct(requestid, attestationData):
     except Exception as e:
         print("[EXCEPTION]:", str(e))
         t_end = time.perf_counter()
-        tasks[requestid] = {
+        shared_tasks[requestid] = {
             "status": "error",
             "returncode": -1,
             "stdout": "",
@@ -75,7 +75,7 @@ def run_command_succinct(requestid, attestationData):
         }
         print(f"[ELAPSED]: {t_end - t_start:.6f}")
     finally:
-        is_busy.value = 0
+        shared_busy.value = 0
 
 
 class SimpleHTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -110,8 +110,6 @@ class SimpleHTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
         data = json.loads(body)
         requestid = data["requestid"]
 
-        global is_busy, tasks
-
         if self.path == "/zktls/is_busy":
             if is_busy.value == 1:
                 data = {"code": "10002", "description": "Server is busy, please try later."}
@@ -136,7 +134,7 @@ class SimpleHTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
             tasks[requestid] = {"status": "running"}
 
             # execute prove program
-            Process(target=run_command_succinct, args=(requestid, attestationData)).start()
+            Process(target=run_command_succinct, args=(requestid, attestationData, is_busy, tasks)).start()
 
             # response
             data = {"code": "0", "description": "success"}
