@@ -23,7 +23,7 @@ if os.getenv("BASE_CALLBACK_URL") is None or os.getenv(
     "BASE_CALLBACK_URL") == "":
   exit("Please set BASE_CALLBACK_URL in .env file")
 
-print(f"Current base_callback_api is {os.getenv("BASE_CALLBACK_URL")}")
+print(f"Current base_callback_api is {os.getenv('BASE_CALLBACK_URL')}")
 
 
 def run_command_succinct(requestid, attestationData, shared_busy, shared_tasks):
