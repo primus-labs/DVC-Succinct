@@ -75,8 +75,10 @@ def run_command_succinct(requestid, attestationData, shared_busy, shared_tasks):
     # send proof_fixture to callback api using requests
     if proof_fixture:
       # set token to headers
+      # Use X-API-Token instead of API_TOKEN for better compatibility across platforms
+      # Some Linux systems/proxies may filter custom headers without X- prefix
       headers = {
-        "API_TOKEN": f"{api_token}"
+        "X-API-Token": f"{api_token}"
       }
       r = requests.post(
         f"{base_callback_api}public/reputation/succinct-proof/callback",
@@ -99,6 +101,7 @@ def run_command_succinct(requestid, attestationData, shared_busy, shared_tasks):
     if rsp_body.get("rc") == 0:
       print("[CALLBACK SUCCESS]:", rsp_body)
     else:
+      print("[CALLBACK ERROR]:", rsp_body.get("msg"))
       shared_tasks[requestid] = {
         "status": "error",
         "returncode": -3,
