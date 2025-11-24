@@ -28,6 +28,18 @@ fn app_main(pv: &mut PublicValuesStruct) -> Result<(), ZktlsError> {
     // 0. Make attestation config
     let v: serde_json::Value = serde_json::from_str(&attestation_data)
         .map_err(|e| zkerr!(ZkErrorCode::ParseAttestationData, e.to_string()))?;
+    let task_id = v
+        .get("public_data")
+        .and_then(|pd| pd.get(0))
+        .and_then(|item| item.get("taskId"))
+        .and_then(|a| a.as_str())
+        .ok_or_else(|| zkerr!(ZkErrorCode::GetTaskIdFail))?;
+    let report_tx_hash = v
+        .get("public_data")
+        .and_then(|pd| pd.get(0))
+        .and_then(|item| item.get("reportTxHash"))
+        .and_then(|a| a.as_str())
+        .ok_or_else(|| zkerr!(ZkErrorCode::GetReportTxHashFail))?;
     let attestor_addr = v
         .get("public_data")
         .and_then(|pd| pd.get(0))
@@ -38,6 +50,8 @@ fn app_main(pv: &mut PublicValuesStruct) -> Result<(), ZktlsError> {
         "attestor_addr": attestor_addr,
         "url": [RISK_URL, BALANCE_URL]
     });
+    pv.task_id = task_id.to_string();
+    pv.report_tx_hash = report_tx_hash.to_string();
     pv.attestor = attestor_addr.to_string();
     pv.base_urls.push(RISK_URL.to_string());
     pv.base_urls.push(BALANCE_URL.to_string());

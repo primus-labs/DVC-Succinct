@@ -13,6 +13,8 @@ pub enum ZkErrorCode {
     InvalidRequestOrder,
     InvalidRequestUrl,
     DuplicateAccount,
+    GetTaskIdFail,
+    GetReportTxHashFail,
 }
 
 pub struct ZktlsError {
