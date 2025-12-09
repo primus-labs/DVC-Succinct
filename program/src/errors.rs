@@ -15,6 +15,9 @@ pub enum ZkErrorCode {
     DuplicateAccount,
     GetTaskIdFail,
     GetReportTxHashFail,
+    GetSpotDataFail,
+    GetUnifiedDataFail,
+    InvalidAttestor,
 }
 
 pub struct ZktlsError {
