@@ -27,6 +27,7 @@ const ATTESTORS: &[&str] = &[
     "0x2f211ef8068ff70c8d851c145baca53ccec0aa07",
     "0x6bfa68fab4d930f19c281f5f1f57a2e4ede5a848",
     "0x96c3cac72a914eb0e6a1d74cdf2c8d6fa9d02320",
+    "0x172f48f7aa734ee18ab7fa3413dc4d974866a3ae",
 ];
 
 fn app_unified(
