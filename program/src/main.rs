@@ -757,12 +757,12 @@ fn app_aster(pv: &mut PublicValuesStruct, spot_data: String, future_data: String
             stablecoin_sum += v;
         } else {
             if v > EPSILON_VALUE {
-                pv.asset_balance.insert(k, v);
+                pv.aster_balance.insert(k, v);
             }
         }
     }
     if stablecoin_sum > EPSILON_VALUE {
-        pv.asset_balance.insert("STABLECOIN".to_string(), stablecoin_sum);
+        pv.aster_balance.insert("STABLECOIN".to_string(), stablecoin_sum);
     }
 
     Ok(())
