@@ -14,6 +14,7 @@ pub struct AttestationMetaStruct {
 pub struct PublicValuesStruct {
     pub attestation_meta: Vec<AttestationMetaStruct>,
     pub asset_balance: HashMap<String, f64>,
+    pub aster_balance: HashMap<String, f64>,
     pub status: i16,
 }
 
