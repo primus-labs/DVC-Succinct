@@ -24,7 +24,7 @@ const ASTER_SPOT_BALANCE_URL: &str = "https://sapi.asterdex.com/api/v1/account";
 const ASTER_FEATURE_BALANCE_URL: &str = "https://fapi.asterdex.com/fapi/v2/balance";
 
 const STABLE_COINS: &[&str] = &[
-    "USDT", "USDC", "FDUSD", "TUSD", "USDE", "XUSD", "USD1", "BFUSD", "USDP", "DAI",
+    "USDT", "USDC", "FDUSD", "TUSD", "USDE", "XUSD", "USD1", "BFUSD", "USDP", "DAI", "USDF",
 ];
 const ATTESTORS: &[&str] = &[
     "0xd638c623833aeb02c8049837bdd54e02540e7031",
