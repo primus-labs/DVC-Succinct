@@ -701,24 +701,30 @@ fn app_aster_future(
 
 fn app_binance(
     pv: &mut PublicValuesStruct,
-    unified_data: String,
-    spot_data: String,
-    future_data: String,
+    unified_opt_data: Option<String>,
+    spot_opt_data: Option<String>,
+    future_opt_data: Option<String>,
 ) -> Result<(), ZktlsError> {
     // Verify Unified, Spot and Future
     let mut asset_bals: HashMap<String, f64> = HashMap::new();
 
-    let mut unified_am = AttestationMetaStruct::default();
-    app_binance_unified(&mut unified_am, &unified_data, &mut asset_bals)?;
-    pv.attestation_meta.push(unified_am);
+    if let Some(unified_data) = unified_opt_data {
+        let mut unified_am = AttestationMetaStruct::default();
+        app_binance_unified(&mut unified_am, &unified_data, &mut asset_bals)?;
+        pv.attestation_meta.push(unified_am);
+    }
 
-    let mut spot_am = AttestationMetaStruct::default();
-    app_binance_spot(&mut spot_am, &spot_data, &mut asset_bals)?;
-    pv.attestation_meta.push(spot_am);
+    if let Some(spot_data) = spot_opt_data {
+        let mut spot_am = AttestationMetaStruct::default();
+        app_binance_spot(&mut spot_am, &spot_data, &mut asset_bals)?;
+        pv.attestation_meta.push(spot_am);
+    }
 
-    let mut future_am = AttestationMetaStruct::default();
-    app_binance_future(&mut future_am, &future_data, &mut asset_bals)?;
-    pv.attestation_meta.push(future_am);
+    if let Some(future_data) = future_opt_data {
+        let mut future_am = AttestationMetaStruct::default();
+        app_binance_future(&mut future_am, &future_data, &mut asset_bals)?;
+        pv.attestation_meta.push(future_am);
+    }
 
     // Summary assets by Category
     let mut stablecoin_sum = 0.0;
@@ -738,17 +744,24 @@ fn app_binance(
     Ok(())
 }
 
-fn app_aster(pv: &mut PublicValuesStruct, spot_data: String, future_data: String) -> Result<(), ZktlsError> {
+fn app_aster(
+    pv: &mut PublicValuesStruct,
+    spot_opt_data: Option<String>,
+    future_opt_data: Option<String>,
+) -> Result<(), ZktlsError> {
     // Verify Spot and Future
     let mut asset_bals: HashMap<String, f64> = HashMap::new();
 
-    let mut spot_am = AttestationMetaStruct::default();
-    app_aster_spot(&mut spot_am, &spot_data, &mut asset_bals)?;
-    pv.attestation_meta.push(spot_am);
-
-    let mut future_am = AttestationMetaStruct::default();
-    app_aster_future(&mut future_am, &future_data, &mut asset_bals)?;
-    pv.attestation_meta.push(future_am);
+    if let Some(spot_data) = spot_opt_data {
+        let mut spot_am = AttestationMetaStruct::default();
+        app_aster_spot(&mut spot_am, &spot_data, &mut asset_bals)?;
+        pv.attestation_meta.push(spot_am);
+    }
+    if let Some(future_data) = future_opt_data {
+        let mut future_am = AttestationMetaStruct::default();
+        app_aster_future(&mut future_am, &future_data, &mut asset_bals)?;
+        pv.attestation_meta.push(future_am);
+    }
 
     // Summary assets by Category
     let mut stablecoin_sum = 0.0;
@@ -778,17 +791,17 @@ fn app_main(pv: &mut PublicValuesStruct) -> Result<(), ZktlsError> {
     let future_data = v.get("future").map(|a| a.to_string());
     let aster_spot_data = v.get("asterSpot").map(|a| a.to_string());
     let aster_future_data = v.get("asterFuture").map(|a| a.to_string());
+    if unified_data.is_none()
+        && spot_data.is_none()
+        && future_data.is_none()
+        && aster_spot_data.is_none()
+        && aster_future_data.is_none()
+    {
+        ensure_zk!(false, zkerr!(ZkErrorCode::MissingRequiredData));
+    }
 
-    let mut has_data = false;
-    if let (Some(unified), Some(spot), Some(future)) = (unified_data, spot_data, future_data) {
-        has_data |= true;
-        app_binance(pv, unified, spot, future)?;
-    }
-    if let (Some(spot), Some(future)) = (aster_spot_data, aster_future_data) {
-        has_data |= true;
-        app_aster(pv, spot, future)?;
-    }
-    ensure_zk!(has_data, zkerr!(ZkErrorCode::MissingRequiredData));
+    app_binance(pv, unified_data, spot_data, future_data)?;
+    app_aster(pv, aster_spot_data, aster_future_data)?;
 
     Ok(())
 }
